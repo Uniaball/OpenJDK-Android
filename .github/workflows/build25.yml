@@ -2,6 +2,7 @@ name: Build OpenJDK25 for Android
 
 on:
   workflow_dispatch:
+  push:
 
 jobs:
   build_android:
