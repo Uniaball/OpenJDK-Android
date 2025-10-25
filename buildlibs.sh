@@ -6,6 +6,9 @@ cd freetype-$BUILD_FREETYPE_VERSION
 echo "Building Freetype"
 
 export PATH=$TOOLCHAIN/bin:$PATH
+
+chmod +x $TOOLCHAIN/bin/android-wrapped-clang  
+
 ./configure \
   --host=$TARGET \
   --prefix=${PWD}/build_android-${TARGET_SHORT} \
@@ -16,8 +19,9 @@ export PATH=$TOOLCHAIN/bin:$PATH
   || error_code=$?
 
 if [[ "$error_code" -ne 0 ]]; then
-  echo "\n\nCONFIGURE ERROR $error_code , config.log:"
-  cat ${PWD}/builds/unix/config.log
+  echo "
+CONFIGURE ERROR $error_code , config.log:"
+  cat builds/unix/config.log  # 简化路径（已在 freetype 目录下）
   exit $error_code
 fi
 
