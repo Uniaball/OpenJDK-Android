@@ -7,7 +7,7 @@ echo "Building Freetype"
 
 export PATH=$TOOLCHAIN/bin:$PATH
 
-chmod +x $TOOLCHAIN/bin/android-wrapped-clang  
+chmod +x /home/runner/work/OpenJDK-Android/OpenJDK-Android/android-wrapped-clang  
 
 ./configure \
   --host=$TARGET \
@@ -21,7 +21,7 @@ chmod +x $TOOLCHAIN/bin/android-wrapped-clang
 if [[ "$error_code" -ne 0 ]]; then
   echo "
 CONFIGURE ERROR $error_code , config.log:"
-  cat builds/unix/config.log  # 简化路径（已在 freetype 目录下）
+  cat builds/unix/config.log
   exit $error_code
 fi
 
