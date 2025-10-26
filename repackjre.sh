@@ -17,29 +17,20 @@ mkdir -p "$work"
 mkdir -p "$work1"
 mkdir -p "$out"
 
-copyjvmlib() {
-  if [[ -d lib/$1 ]]; then
-    echo "Moving $1 VM for $2"
-    mv lib/$1 "$work1"/lib/;
-  fi
-}
-
 # here comes a not-so-complicated functions to easily make desired arch
 ## Usage: makearch [jre_libs_dir_name] [name_in_tarball]
 makearch () {
   echo "Making $2...";
   cd "$work";
-  tar xf $(find "$in" -name jre26-$2-*release.tar.xz) > /dev/null 2>&1;
+  tar xf $(find "$in" -name jre17-$2-*release.tar.xz) > /dev/null 2>&1;
   mv bin "$work1"/;
   mkdir -p "$work1"/lib;
   
   #mv lib/$1 "$work1"/lib/;
   mv lib/jexec "$work1"/lib/;
-  mv lib/jvm.cfg "$work1"/lib/;
   
   # server contains the libjvm.so
-  copyjvmlib server $2
-  copyjvmlib client $2
+  mv lib/server "$work1"/lib/;
   
   # All the other .so files are at the root of the lib folder
   find ./ -name '*.so' -execdir mv {} "$work1"/lib/{} \;
@@ -56,12 +47,11 @@ makearch () {
 makeuni () {
   echo "Making universal...";
   cd "$work";
-  tar xf $(find "$in" -name jre26-arm64-*release.tar.xz) > /dev/null 2>&1;
+  tar xf $(find "$in" -name jre17-arm64-*release.tar.xz) > /dev/null 2>&1;
   
   rm -rf bin;
   rm -rf lib/server;
   rm lib/jexec;
-  rm lib/jvm.cfg;
   find ./ -name '*.so' -execdir rm {} \; # Remove arch specific shared objects
   rm release
   
@@ -77,10 +67,5 @@ makearch aarch64 arm64
 makearch i386 x86
 makearch amd64 x86_64
 
-# if running under GitHub Actions, write commit sha, else formatted system date
-if [[ -n "$GITHUB_SHA" ]]
-then
-echo $GITHUB_SHA>"$out"/version
-else
+# formatted system date
 date +%Y%m%d>"$out"/version
-fi
