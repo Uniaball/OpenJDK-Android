@@ -1,7 +1,6 @@
 name: Build OpenJDK17 for Android
 
 on:
-  workflow_dispatch:
   push:
 jobs:
   build_android:
