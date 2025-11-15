@@ -1,7 +1,6 @@
 name: Build OpenJDK21 for Android
 
 on:
-  workflow_dispatch:
   push:
 
 jobs:
