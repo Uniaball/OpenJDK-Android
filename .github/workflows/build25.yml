@@ -35,7 +35,7 @@ jobs:
         name: 'jre25'
         path: jre25*.tar.xz
     - name: Upload JRE debuginfo build output
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v4
       with:
         name: "jre25-debuginfo"
         path: dizout
