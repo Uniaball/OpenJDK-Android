@@ -35,7 +35,7 @@ jobs:
         name: "jre21"
         path: jre21*.tar.xz
     - name: Upload JRE debuginfo build output
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v4
       with:
         name: "jre21-debuginfo"
         path: dizout
