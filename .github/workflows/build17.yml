@@ -34,7 +34,7 @@ jobs:
         name: "jre17"
         path: jre17*.tar.xz
     - name: Upload JRE debuginfo build output
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@main
       with:
         name: "jre17-debuginfo"
         path: dizout
