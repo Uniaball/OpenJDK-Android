@@ -2,7 +2,7 @@
 set -e
 . setdevkitpath.sh
 
-export FREETYPE_DIR=$PWD/freetype-$BUILD_FREETYPE_VERSION/build_android-$TARGET_SHORT
+export FREETYPE_DIR=$PWD/freetype/build_android-$TARGET_SHORT
 export CUPS_DIR=$PWD/cups
 
 if [[ "$TARGET_JDK" == "arm" ]]
@@ -18,7 +18,7 @@ fi
 
 if [[ "$TARGET_JDK" == "aarch64" ]]
 then
-   export CFLAGS+=" -march=armv8-a+simd+crc+fp16+dotprod+lse"
+   export CFLAGS+=" -march=armv8-a+simd+crc+fp16+dotprod+lse -mno-omit-leaf-frame-pointer -fsigned-char -Wno-psabi"
 fi
 
 ln -s -f /usr/include/X11 $ANDROID_INCLUDE/
@@ -55,10 +55,9 @@ AUTOCONF_EXTRA_ARGS+="OBJCOPY=$OBJCOPY \
 #no error
 export CFLAGS+=" -DANDROID -D__ANDROID__=1 -D__TERMUX__=1 -DLE_STANDALONE -Wno-int-conversion -Wno-error=implicit-function-declaration -Wno-unused-command-line-argument -Wno-exception-specification"
 
-export CFLAGS+=" -O3 -fomit-frame-pointer -fno-semantic-interposition -mllvm -hot-cold-split=true -fdata-sections -ffunction-sections -fmerge-all-constants -ftree-vectorize -fvectorize -fslp-vectorize -pipe -integrated-as -stdlib=libc++"
+export CFLAGS+=" -O3 -fomit-frame-pointer -fno-semantic-interposition -mllvm -hot-cold-split=true -fdata-sections -ffunction-sections -fmerge-all-constants -ftree-vectorize -fvectorize -fslp-vectorize -pipe -integrated-as"
 export LDFLAGS+=" -fuse-ld=lld -Wl,--gc-sections -Wl,-O3 -Wl,--sort-common -Wl,--as-needed -l:libomp.a"
 
-# 地域歧视
 # if [[ "$API" -ge "29" ]]
 # then
 export CFLAGS+=" -flto -Wl,--lto-O3 -fno-emulated-tls"
@@ -85,11 +84,11 @@ cd openjdk
 
 # Apply patches
 git reset --hard
-git apply --reject --whitespace=fix ../patches/jdk26u_android.diff || echo "git apply failed (Android patch set)"
+git apply --reject --whitespace=fix ../patches/jdk27u_android.diff || echo "git apply failed (Android patch set)"
 # if [[ "$API" == "21" ]] || [[ "$API" == "22" ]]; then
-#   git apply --reject --whitespace=fix ../patches/jdk26u_android5.diff || echo "git apply failed (Android patch set)"
+#   git apply --reject --whitespace=fix ../patches/jdk27u_android5.diff || echo "git apply failed (Android patch set)"
 # fi
-# git apply --reject --whitespace=fix ../patches/jdk26u_termux.diff || echo "git apply failed (Termux patch set)"
+# git apply --reject --whitespace=fix ../patches/jdk27u_termux.diff || echo "git apply failed (Termux patch set)"
 
 bash ./configure \
     --with-version-pre="-ea" \

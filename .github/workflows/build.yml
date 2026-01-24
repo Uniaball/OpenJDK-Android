@@ -1,4 +1,4 @@
-name: Build OpenJDK26 for Android
+name: Build OpenJDK27 for Android
 
 on:
   workflow_dispatch:
@@ -27,15 +27,15 @@ jobs:
     - name: Upload JDK build output
       uses: actions/upload-artifact@main
       with:
-        name: "jdk26"
-        path: jdk26*.tar.xz
+        name: "jdk27"
+        path: jdk27*.tar.xz
     - name: Upload JRE build output
       uses: actions/upload-artifact@main
       with:
-        name: "jre26"
-        path: jre26*.tar.xz
+        name: "jre27"
+        path: jre27*.tar.xz
     - name: Upload JRE debuginfo build output
       uses: actions/upload-artifact@main
       with:
-        name: "jre26-debuginfo"
+        name: "jre27-debuginfo"
         path: dizout

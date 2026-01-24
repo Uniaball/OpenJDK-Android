@@ -229,11 +229,11 @@ index 42680218d..403d8905b 100644
 +
  // utility functions
  
- julong os::Linux::available_memory_in_container() {
+ bool os::available_memory(physical_memory_size_type& value) {
 @@ -348,2 +350,4 @@ bool os::Linux::get_tick_information(CPUPerfTicks* pticks, int which_logical_cpu
-     #define SYS_gettid 143
-+   #elif defined(__arm64__) || defined(__aarch64__)
-+     #define SYS_gettid 178
+     #define SYS_gettid 186
++  #elif defined(__arm64__) || defined(__aarch64__)
++    #define SYS_gettid 178
    #else
 @@ -535,6 +539,7 @@ extern "C" void breakpoint() {
  // detecting pthread library
@@ -2045,27 +2045,13 @@ diff --git a/make/data/hotspot-symbols/version-script-clang.txt b/make/data/hots
 index 351d64fdd1d57..08ab416cde3e1 100644
 --- a/make/data/hotspot-symbols/version-script-clang.txt
 +++ b/make/data/hotspot-symbols/version-script-clang.txt
-@@ -3,6 +3,5 @@ SUNWprivate_1.1 {
+@@ -3,6 +3,4 @@ SUNWprivate_1.1 {
      *;
  
    local:
 -    _fini;
 -    _init;
-+    *;
  };
-diff --git a/make/hotspot/lib/CompileJvm.gmk b/make/hotspot/lib/CompileJvm.gmk
-index 6b5edc85b2369..d0f737bbfa5d9 100644
---- a/make/hotspot/lib/CompileJvm.gmk
-+++ b/make/hotspot/lib/CompileJvm.gmk
-@@ -162,7 +162,7 @@ endif
- ifeq ($(call isTargetOs, linux), true)
-   HOTSPOT_VERSION_SCRIPT := $(TOPDIR)/make/data/hotspot-symbols/version-script-$(TOOLCHAIN_TYPE).txt
- 
--  JVM_LDFLAGS += -Wl,-version-script=$(HOTSPOT_VERSION_SCRIPT)
-+  JVM_LDFLAGS += -Wl,-version-script=$(HOTSPOT_VERSION_SCRIPT) -Wl,--no-undefined-version -Wl,--no-undefined
- endif
- 
- ################################################################################
 diff --git a/make/hotspot/lib/JvmOverrideFiles.gmk b/make/hotspot/lib/JvmOverrideFiles.gmk
 index 3eedb64a597a3..d773c5f949523 100644
 --- a/make/hotspot/lib/JvmOverrideFiles.gmk
@@ -2119,15 +2105,13 @@ diff --git a/src/hotspot/os/posix/os_posix.cpp b/src/hotspot/os/posix/os_posix.c
 index d417f384a18c8..d26f81a4d5914 100644
 --- a/src/hotspot/os/posix/os_posix.cpp
 +++ b/src/hotspot/os/posix/os_posix.cpp
-@@ -107,6 +107,8 @@ static int clock_tics_per_sec = 100;
+@@ -107,4 +107,6 @@ static int clock_tics_per_sec = 100;
  // Platform minimum stack allowed
  size_t os::_os_min_stack_allowed = PTHREAD_STACK_MIN;
  
 +static bool read_so_path_from_maps(const char* so_name, char* buf, int buflen);
 +
  // Check core dump limit and report possible place where core can be found
- void os::check_core_dump_prerequisites(char* buffer, size_t bufferSize, bool check_only) {
-   if (!FLAG_IS_DEFAULT(CreateCoredumpOnCrash) && !CreateCoredumpOnCrash) {
 @@ -1064,6 +1066,30 @@ bool os::same_files(const char* file1, const char* file2) {
  
  static char saved_jvm_path[MAXPATHLEN] = {0};
@@ -2859,3 +2843,16 @@ index 47becd7b4c74d..f6cbf8db65b2f 100644
 -FORBID_IMPORTED_C_FUNCTION(wchar_t* wcsdup(const wchar_t *s), noexcept, "don't use");
 -
  #endif // SHARE_UTILITIES_FORBIDDENFUNCTIONS_HPP
+diff --git a/make/conf/branding.conf b/make/conf/branding.conf
+index 912e4f622dbae..8dac110adecc0 100644
+--- a/make/conf/branding.conf
++++ b/make/conf/branding.conf
+@@ -25,7 +25,7 @@
+ 
+ LAUNCHER_NAME=openjdk
+ PRODUCT_NAME=OpenJDK
+-PRODUCT_SUFFIX="Runtime Environment"
++PRODUCT_SUFFIX="DroidAn Walktime Environment"
+ JDK_RC_PLATFORM_NAME=Platform
+ COMPANY_NAME=N/A
+ HOTSPOT_VM_DISTRO="OpenJDK"
