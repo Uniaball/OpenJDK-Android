@@ -1,5 +1,5 @@
 name: Build OpenJDK21 for Android
-#1
+#2
 on:
   push:
 
@@ -16,7 +16,7 @@ jobs:
     - name: set up JDK 21
       uses: actions/setup-java@main
       with:
-        java-version: 21.0.9
+        java-version: 21
         distribution: zulu
     - name: Install build dependencies
       run: |
