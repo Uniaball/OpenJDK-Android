@@ -8,22 +8,26 @@ export CUPS_DIR=$PWD/cups
 if [[ "$TARGET_JDK" == "arm" ]]
 then
   export CFLAGS+=" -D__thumb__"
-  export buildjdk_ld="$TOOLCHAIN/bin/ld"
 else
   if [[ "$TARGET_JDK" == "x86" ]]; then
      export CFLAGS+=" -mstackrealign"
   fi
-  export buildjdk_ld="$thecxx"
+fi
+
+if [[ "$TARGET_JDK" != "aarch64" ]]
+then
+  export BUILD_Compiler="gcc"
 fi
 
 if [[ "$TARGET_JDK" == "aarch64" ]]
 then
    export CFLAGS+=" -march=armv8-a+simd"
+   export BUILD_Compiler="clang"
 fi
 
 ln -s -f /usr/include/X11 $ANDROID_INCLUDE/
 ln -s -f /usr/include/fontconfig $ANDROID_INCLUDE/
-platform_args="--with-toolchain-type=clang \
+platform_args="--with-toolchain-type=${BUILD_Compiler} \
   --with-freetype-include=$FREETYPE_DIR/include/freetype2 \
   --with-freetype-lib=$FREETYPE_DIR/lib \
   OBJDUMP=${OBJDUMP} \
@@ -37,7 +41,7 @@ platform_args="--with-toolchain-type=clang \
   BUILD_AS="$AS" \
   OBJCOPY=${OBJCOPY} \
   CXXFILT=${CXXFILT} \
-  LD=$buildjdk_ld \
+  LD=${LD} \
   READELF=$TOOLCHAIN/bin/llvm-readelf \
   "
 
@@ -55,17 +59,24 @@ AUTOCONF_EXTRA_ARGS+="OBJCOPY=$OBJCOPY \
 #no error
 export CFLAGS+=" -DANDROID -D__ANDROID__=1 -D__TERMUX__=1 -DLE_STANDALONE -Wno-int-conversion -Wno-error=implicit-function-declaration -Wno-unused-command-line-argument -Wno-exception-specification"
 
+if [[ "$TARGET_JDK" == "aarch64" ]]
+then
 export CFLAGS+=" -O3 -fomit-frame-pointer -fno-semantic-interposition -mllvm -hot-cold-split=true -fdata-sections -ffunction-sections -fmerge-all-constants -ftree-vectorize -fvectorize -fslp-vectorize -pipe -integrated-as"
 export LDFLAGS+=" -fuse-ld=lld -Wl,--gc-sections -Wl,-O3 -Wl,--sort-common -Wl,--as-needed -l:libomp.a"
 
-# if [[ "$API" -ge "29" ]]
-# then
 export CFLAGS+=" -flto -Wl,--lto-O3 -fno-emulated-tls"
 export LDFLAGS+=" -flto -Wl,--lto-O3 -Wl,-plugin-opt=-emulated-tls=0"
-# fi
 
 #polly
 export CFLAGS+=" -mllvm -polly -mllvm -polly-vectorizer=stripmine -mllvm -polly-invariant-load-hoisting -mllvm -polly-run-inliner -mllvm -polly-run-dce -mllvm -polly-detect-keep-going -mllvm -polly-ast-use-context -mllvm -polly-parallel -mllvm -polly-omp-backend=LLVM"
+else
+export CFLAGS+=" -O3 -pipe -integrated-as -fdata-sections -ffunction-sections -fmerge-all-constants"
+export LDFLAGS+=" -flto -fuse-ld=lld -l:libomp.a"
+
+#polly
+export CFLAGS+=" -mllvm -polly -mllvm -polly-parallel -mllvm -polly-omp-backend=LLVM"
+fi
+
 #fast-math
 # export CFLAGS+=" -ffast-math -fno-finite-math-only -fno-signed-zeros -fno-trapping-math -fno-math-errno -freciprocal-math -fno-associative-math"
 
