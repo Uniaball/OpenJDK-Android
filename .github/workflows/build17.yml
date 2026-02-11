@@ -1,4 +1,5 @@
 name: Build OpenJDK17 for Android
+run-name: "Build OpenJDK17 for Android"
 #4
 on:
   push:
