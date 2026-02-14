@@ -1,4 +1,5 @@
 name: Build OpenJDK25 for Android
+run-name: Build OpenJDK25 for Android
 #3
 on:
   push:
