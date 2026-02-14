@@ -221,11 +221,20 @@ diff --git a/src/hotspot/os/linux/os_linux.cpp b/src/hotspot/os/linux/os_linux.c
 index 42680218d..403d8905b 100644
 --- a/src/hotspot/os/linux/os_linux.cpp
 +++ b/src/hotspot/os/linux/os_linux.cpp
-@@ -348,2 +350,4 @@ bool os::Linux::get_tick_information(CPUPerfTicks* pticks, int which_logical_cpu
+@@ -534,10 +534,12 @@ bool os::Linux::get_tick_information(CPUPerfTicks* pticks, int which_logical_cpu
+ 
+ #ifndef SYS_gettid
+ // i386: 224, amd64: 186
+-  #if defined(__i386__)
++  #if defined(__i386__) || defined(__arm__)
+     #define SYS_gettid 224
+   #elif defined(__amd64__)
      #define SYS_gettid 186
-+  #elif defined(__arm64__) || defined(__aarch64__)
++#elif defined(__arm64__) || defined(__aarch64__)
 +    #define SYS_gettid 178
    #else
+     #error "Define SYS_gettid for this architecture"
+   #endif
 @@ -535,6 +539,7 @@ extern "C" void breakpoint() {
  // detecting pthread library
  
@@ -2738,3 +2747,16 @@ index 9b3c65b0656ae..bd359cbce6c88 100644
 +#endif // __ANDROID__
 +
  #endif // SHARE_UTILITIES_FORBIDDENFUNCTIONS_HPP
+diff --git a/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp b/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
+index ab7498b313c5b..a3245ed0c2aa6 100644
+--- a/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
++++ b/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
+@@ -36,7 +36,7 @@ static uint* z_numa_id_to_node = nullptr;
+ static uint32_t* z_node_to_numa_id = nullptr;
+ 
+ void ZNUMA::pd_initialize() {
+-  _enabled = UseNUMA;
++  _enabled = false;
+ 
+   size_t configured_nodes = 0;
+ 
