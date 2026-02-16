@@ -2,7 +2,8 @@ name: Build OpenJDK21 for Android
 run-name: "Build OpenJDK21 for Android"
 #5
 on:
-  push:
+  schedule:
+    - cron: '0 0 * * 6'
 
 jobs:
   build_android:
