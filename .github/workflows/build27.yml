@@ -1,9 +1,7 @@
-name: Build OpenJDK27 for Android
-
+name: Build OpenJDK27 for Android (Optimization Solution)
+run-name: Build OpenJDK27 for Android (Optimization Solution)
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * 6'
+  push: 
 
 jobs:
   build_android:
