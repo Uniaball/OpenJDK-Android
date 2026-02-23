@@ -33,10 +33,8 @@ export ANDROID_INCLUDE=$TOOLCHAIN/sysroot/usr/include
 export CPPFLAGS="-I$ANDROID_INCLUDE -I$ANDROID_INCLUDE/$TARGET"
 export LDFLAGS="-fuse-ld=lld"
 
-export PATH="/usr/lib/ccache:$PATH"
-
-export CC="$TOOLCHAIN/bin/${TARGET}${API}-clang"
-export CXX="$TOOLCHAIN/bin/${TARGET}${API}-clang++"
+export CC="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang"
+export CXX="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang++"
 
 export LD=$TOOLCHAIN/bin/ld.lld
 
