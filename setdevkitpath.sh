@@ -32,11 +32,10 @@ export ANDROID_INCLUDE=$TOOLCHAIN/sysroot/usr/include
 
 export CPPFLAGS="-I$ANDROID_INCLUDE -I$ANDROID_INCLUDE/$TARGET"
 export LDFLAGS="-fuse-ld=lld"
-export thecc=$TOOLCHAIN/bin/${TARGET}${API}-clang
-export thecxx=$TOOLCHAIN/bin/${TARGET}${API}-clang++
 
-export CC=$thecc
-export CXX=$thecxx
+export CC="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang"
+export CXX="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang++"
+
 export LD=$TOOLCHAIN/bin/ld.lld
 
 export DLLTOOL=$TOOLCHAIN/bin/llvm-dlltool
