@@ -28,10 +28,6 @@ ln -s -f /usr/include/fontconfig "$ANDROID_INCLUDE/" 2>/dev/null || true
 ln -s -f "$CUPS_DIR/cups" "$ANDROID_INCLUDE/" 2>/dev/null || true
 
 target_build_dir="build/${JVM_PLATFORM}-${TARGET_JDK}-${JVM_VARIANTS}-${JDK_DEBUG_LEVEL}"
-if [[ -d "$target_build_dir/images/jdk" ]]; then
-    echo "JDK already built in $target_build_dir, skipping build."
-    exit 0
-fi
 
 cd openjdk
 
