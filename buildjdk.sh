@@ -59,7 +59,6 @@ bash ./configure \
     --with-toolchain-type="$BUILD_Compiler" \
     --with-freetype-include="$FREETYPE_DIR/include/freetype2" \
     --with-freetype-lib="$FREETYPE_DIR/lib" \
-    --with-ccache=ccache \
     OBJDUMP="$OBJDUMP" \
     STRIP="$STRIP" \
     NM="$NM" \
