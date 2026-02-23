@@ -51,7 +51,6 @@ jobs:
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         key: ${{ runner.os }}-${{ github.job }}
-        create-symlink: true
         max-size: 2G
 
     - name: Build with CI build script
