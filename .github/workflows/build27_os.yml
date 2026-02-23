@@ -1,9 +1,8 @@
 name: Build OpenJDK27 for Android (Optimization Solution)
 run-name: Build OpenJDK27 for Android (Optimization Solution)
-#1
 on:
-  push: 
-
+  # push: 
+  workflow_dispatch:
 jobs:
   build_android:
     strategy:
