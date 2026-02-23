@@ -27,6 +27,31 @@ ln -s -f /usr/include/X11 "$ANDROID_INCLUDE/" 2>/dev/null || true
 ln -s -f /usr/include/fontconfig "$ANDROID_INCLUDE/" 2>/dev/null || true
 ln -s -f "$CUPS_DIR/cups" "$ANDROID_INCLUDE/" 2>/dev/null || true
 
+# 创建 ccache 包装器脚本，解决 configure 对 CC 的检查问题
+CCACHE_WRAPPER_DIR="$PWD/ccache_wrappers"
+mkdir -p "$CCACHE_WRAPPER_DIR"
+
+# 从原始 CC 和 CXX 中提取真正的编译器路径（去掉 "ccache " 前缀）
+REAL_CC="${CC#ccache }"
+REAL_CXX="${CXX#ccache }"
+
+# 生成包装器脚本（文件名与原始编译器相同）
+cat > "$CCACHE_WRAPPER_DIR/$(basename "$REAL_CC")" << EOF
+#!/bin/bash
+exec ccache "$REAL_CC" "\$@"
+EOF
+chmod +x "$CCACHE_WRAPPER_DIR/$(basename "$REAL_CC")"
+
+cat > "$CCACHE_WRAPPER_DIR/$(basename "$REAL_CXX")" << EOF
+#!/bin/bash
+exec ccache "$REAL_CXX" "\$@"
+EOF
+chmod +x "$CCACHE_WRAPPER_DIR/$(basename "$REAL_CXX")"
+
+# 将 CC/CXX 指向包装器脚本
+export CC="$CCACHE_WRAPPER_DIR/$(basename "$REAL_CC")"
+export CXX="$CCACHE_WRAPPER_DIR/$(basename "$REAL_CXX")"
+
 target_build_dir="build/${JVM_PLATFORM}-${TARGET_JDK}-${JVM_VARIANTS}-${JDK_DEBUG_LEVEL}"
 
 cd openjdk
