@@ -41,6 +41,3 @@ tar cJf "../jre27-${TARGET_SHORT}-$(date +%Y%m%d)-${JDK_DEBUG_LEVEL}.tar.xz" .
 
 cd ../jdkout
 tar cJf "../jdk27-${TARGET_SHORT}-$(date +%Y%m%d)-${JDK_DEBUG_LEVEL}.tar.xz" .
-
-cd ..
-rm -rf jdkout jreout dummy_libs dSYM-temp dizout
