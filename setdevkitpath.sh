@@ -1,71 +1,41 @@
-# Use the old NDK r10e to not get internal compile error at (still?)
-# https://github.com/PojavLauncherTeam/openjdk-multiarch-jdk8u/blob/aarch64-shenandoah-jdk8u272-b10/jdk/src/share/native/sun/java2d/loops/GraphicsPrimitiveMgr.c
+#!/bin/bash
 export NDK_VERSION=r29
 
-if [[ -z "$JDK_DEBUG_LEVEL" ]]
-then
-  export JDK_DEBUG_LEVEL=release
-fi
+export JDK_DEBUG_LEVEL=${JDK_DEBUG_LEVEL:-release}
+export JVM_VARIANTS=${JVM_VARIANTS:-server}
 
-if [[ "$TARGET_JDK" == "aarch64" ]]
-then
-  export TARGET_SHORT=arm64
-else
-  export TARGET_SHORT=$TARGET_JDK
-fi
-
-if [[ -z "$JVM_VARIANTS" ]]
-then
-  export JVM_VARIANTS=server
-fi
+export TARGET=aarch64-linux-android
+export TARGET_SHORT=arm64
+export TARGET_JDK=aarch64
 
 export JVM_PLATFORM=linux
-# Set NDK
 export API=24
 
-# Runners usually ship with a recent NDK already
-if [[ -z "$ANDROID_NDK_HOME" ]]
-then
-  export ANDROID_NDK_HOME=$PWD/android-ndk-$NDK_VERSION
+if [[ -z "$ANDROID_NDK_HOME" ]]; then
+    export ANDROID_NDK_HOME="$PWD/android-ndk-$NDK_VERSION"
 fi
 
-export TOOLCHAIN=$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64
+export TOOLCHAIN="$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64"
 
-export ANDROID_INCLUDE=$TOOLCHAIN/sysroot/usr/include
+export ANDROID_INCLUDE="$TOOLCHAIN/sysroot/usr/include"
 
-export CPPFLAGS="-I$ANDROID_INCLUDE -I$ANDROID_INCLUDE/$TARGET" # -I/usr/include -I/usr/lib
+export CPPFLAGS="-I$ANDROID_INCLUDE -I$ANDROID_INCLUDE/$TARGET"
 export LDFLAGS="-fuse-ld=lld"
-export thecc=$TOOLCHAIN/bin/${TARGET}${API}-clang
-export thecxx=$TOOLCHAIN/bin/${TARGET}${API}-clang++
 
-# Configure and build.
-export DLLTOOL=$TOOLCHAIN/bin/llvm-dlltool
-export CXXFILT=$TOOLCHAIN/bin/llvm-cxxfilt
-export NM=$TOOLCHAIN/bin/llvm-nm
- # if [[ "$TARGET_JDK" == "aarch64" ]]
-#then
-export CC=$thecc
-export CXX=$thecxx
-<< EOF
-else
-chmod +x $PWD/android-wrapped-clang
-chmod +x $PWD/android-wrapped-clang++
-export CC=$PWD/android-wrapped-clang
-export CXX=$PWD/android-wrapped-clang++
-fi
-EOF
-if [[ "$TARGET_JDK" == "aarch64" ]]
-then
-export LD=$TOOLCHAIN/bin/ld.lld
-else
-export LD=$TOOLCHAIN/bin/ld
-fi
-export AR=$TOOLCHAIN/bin/llvm-ar
-export AS=$TOOLCHAIN/bin/llvm-as
-export OBJCOPY=$TOOLCHAIN/bin/llvm-objcopy
-export OBJDUMP=$TOOLCHAIN/bin/llvm-objdump
-export READELF=$TOOLCHAIN/bin/llvm-readelf
-export RANLIB=$TOOLCHAIN/bin/llvm-ranlib
-export STRIP=$TOOLCHAIN/bin/llvm-strip
-export LINK=$TOOLCHAIN/bin/llvm-link
+export CC="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang"
+export CXX="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang++"
+
+export LD="$TOOLCHAIN/bin/ld.lld"
+
+export DLLTOOL="$TOOLCHAIN/bin/llvm-dlltool"
+export CXXFILT="$TOOLCHAIN/bin/llvm-cxxfilt"
+export NM="$TOOLCHAIN/bin/llvm-nm"
+export AR="$TOOLCHAIN/bin/llvm-ar"
+export AS="$TOOLCHAIN/bin/llvm-as"
+export OBJCOPY="$TOOLCHAIN/bin/llvm-objcopy"
+export OBJDUMP="$TOOLCHAIN/bin/llvm-objdump"
+export READELF="$TOOLCHAIN/bin/llvm-readelf"
+export RANLIB="$TOOLCHAIN/bin/llvm-ranlib"
+export STRIP="$TOOLCHAIN/bin/llvm-strip"
+export LINK="$TOOLCHAIN/bin/llvm-link"
 export TARGET_OS=android
