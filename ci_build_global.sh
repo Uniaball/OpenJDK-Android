@@ -2,8 +2,6 @@
 set -e
 . setdevkitpath.sh
 
-export JDK_DEBUG_LEVEL=release
-
 if [[ -d "$ANDROID_NDK_HOME" ]]; then
     echo "NDK already exists: $ANDROID_NDK_HOME"
 else

@@ -1,57 +1,45 @@
 #!/bin/bash
 set -e
 
-## Usage:
-## ./repackjre.sh [path_to_normal_jre_tarballs] [output_path]
+IN_DIR="$1"
+OUT_DIR="$2"
 
-in="$1"
-out="$2"
-work="$in/work"
-work1="$in/work1"
+mkdir -p "$OUT_DIR"
 
-mkdir -p "$work" "$work1" "$out"
+TARBALL=$(find "$IN_DIR" -maxdepth 1 -name 'jre27-*.tar.xz' | head -1)
+ARCH="arm64"
 
-copyjvmlib() {
-  if [[ -d "lib/$1" ]]; then
-    echo "Moving $1 VM for $2"
-    mv "lib/$1" "$work1/lib/"
-  fi
-}
+WORK_DIR="$IN_DIR/work"
+WORK1_DIR="$IN_DIR/work1"
+mkdir -p "$WORK_DIR" "$WORK1_DIR"
+trap 'rm -rf "$WORK_DIR" "$WORK1_DIR"' EXIT
 
-makearch() {
-  echo "Making $2..."
-  cd "$work"
-  tar xf "$(find "$in" -name "jre27-$2-*release.tar.xz")" >/dev/null 2>&1
-  mv bin "$work1/"
-  mkdir -p "$work1/lib"
-  mv lib/jexec "$work1/lib/"
-  mv lib/jvm.cfg "$work1/lib/"
-  copyjvmlib server "$2"
-  copyjvmlib client "$2"
-  find ./ -name '*.so' -exec mv {} "$work1/lib/" \;
-  mv release "$work1/release"
-  XZ_OPT="-6 --threads=0" tar cJf "bin-$2.tar.xz" -C "$work1" . >/dev/null
-  mv "bin-$2.tar.xz" "$out/"
-  rm -rf "$work"/* "$work1"/*
-}
+# universal part
+cd "$WORK_DIR"
+tar xf "$TARBALL"
+rm -rf bin lib/server lib/jexec lib/jvm.cfg
+find . -name '*.so' -delete
+rm -f release
+XZ_OPT="-6 --threads=0" tar cJf "$OUT_DIR/universal.tar.xz" *
 
-makeuni() {
-  echo "Making universal..."
-  cd "$work"
-  tar xf "$(find "$in" -name "jre27-arm64-*release.tar.xz")" >/dev/null 2>&1
-  rm -rf bin lib/server lib/jexec lib/jvm.cfg
-  find ./ -name '*.so' -exec rm {} \;
-  rm release
-  XZ_OPT="-6 --threads=0" tar cJf universal.tar.xz * >/dev/null
-  mv universal.tar.xz "$out/"
-  rm -rf "$work"/*
-}
+# arch-specific part
+rm -rf "$WORK_DIR"/*
+cd "$WORK_DIR"
+tar xf "$TARBALL"
+mkdir -p "$WORK1_DIR/lib"
+mv bin "$WORK1_DIR/"
+[ -f lib/jexec ] && mv lib/jexec "$WORK1_DIR/lib/"
+[ -f lib/jvm.cfg ] && mv lib/jvm.cfg "$WORK1_DIR/lib/"
+for variant in server client; do
+    [ -d "lib/$variant" ] && mv "lib/$variant" "$WORK1_DIR/lib/"
+done
+find . -name '*.so' -exec mv {} "$WORK1_DIR/lib/" \;
+[ -f release ] && mv release "$WORK1_DIR/"
+XZ_OPT="-6 --threads=0" tar cJf "$OUT_DIR/bin-$ARCH.tar.xz" -C "$WORK1_DIR" .
 
-makeuni
-makearch aarch64 arm64
-
-if [[ -n "$GITHUB_SHA" ]]; then
-  echo "$GITHUB_SHA" > "$out/version"
+# version file
+if [ -n "$GITHUB_SHA" ]; then
+    echo "$GITHUB_SHA" > "$OUT_DIR/version"
 else
-  date +%Y%m%d > "$out/version"
+    date +%Y%m%d > "$OUT_DIR/version"
 fi
