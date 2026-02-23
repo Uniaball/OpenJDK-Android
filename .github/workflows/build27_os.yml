@@ -1,7 +1,7 @@
 name: Build OpenJDK27 for Android (Optimization Solution)
 run-name: Build OpenJDK27 for Android (Optimization Solution)
 on:
-  push:
+  # push:
 
 jobs:
   build_android:
@@ -30,7 +30,6 @@ jobs:
       run: |
         echo "freetype_hash=$(git ls-remote https://github.com/LWJGL-CI/freetype HEAD | cut -f1)" >> $GITHUB_OUTPUT
         echo "cups_hash=$(git ls-remote https://github.com/OpenPrinting/cups HEAD | cut -f1)" >> $GITHUB_OUTPUT
-        echo "openjdk_hash=$(git ls-remote https://github.com/openjdk/jdk HEAD | cut -f1)" >> $GITHUB_OUTPUT
 
     - name: Cache Freetype build
       uses: actions/cache@v4
@@ -48,21 +47,12 @@ jobs:
         restore-keys: |
           cups-src-${{ runner.os }}-
 
-    - name: Cache OpenJDK source
-      uses: actions/cache@v4
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2
       with:
-        path: openjdk
-        key: openjdk-src-${{ runner.os }}-${{ steps.upstream.outputs.openjdk_hash }}-${{ hashFiles('patches/**', 'clonejdk.sh') }}
-        restore-keys: |
-          openjdk-src-${{ runner.os }}-
-
-    - name: Cache OpenJDK build
-      uses: actions/cache@v4
-      with:
-        path: openjdk/build
-        key: openjdk-build-${{ runner.os }}-${{ github.sha }}
-        restore-keys: |
-          openjdk-build-${{ runner.os }}-
+        key: ${{ runner.os }}-${{ github.job }}
+        create-symlink: true
+        max-size: 2G
 
     - name: Build with CI build script
       run: bash "ci_build_arch_aarch64.sh"
