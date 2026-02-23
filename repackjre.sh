@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+## Usage:
+## ./repackjre.sh [path_to_normal_jre_tarballs] [output_path]
+
 in="$1"
 out="$2"
 work="$in/work"

@@ -1,7 +1,13 @@
 #!/bin/bash
 set -e
 . setdevkitpath.sh
+
 cd freetype
+
+if [[ -d "build_android-${TARGET_SHORT}" ]]; then
+    echo "Freetype already built in build_android-${TARGET_SHORT}, skipping build."
+    exit 0
+fi
 
 echo "Building Freetype"
 
@@ -24,7 +30,6 @@ if [[ "$error_code" -ne 0 ]]; then
   cat ${PWD}/builds/unix/config.log
   exit $error_code
 fi
-
 
 CFLAGS="-O3 -fno-rtti -mllvm -polly" CXXFLAGS="-O3 -fno-rtti -mllvm -polly" make -j6
 make install
