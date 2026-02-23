@@ -7,7 +7,7 @@ export CUPS_DIR="$PWD/cups"
 
 export BUILD_Compiler="clang"
 
-export CFLAGS="-DANDROID -D__ANDROID__=1 -D__TERMUX__=1 -DLE_STANDALONE -Wno-int-conversion -Wno-error=implicit-function-declaration -Wno-unused-command-line-argument -Wno-exception-specification -D__ANDROID_API__=$API"
+export CFLAGS="-DANDROID -D__ANDROID__=1 -D__TERMUX__=1 -DLE_STANDALONE -Wno-int-conversion -Wno-error=implicit-function-declaration -Wno-unused-command-line-argument -Wno-exception-specification"
 
 export CFLAGS+=" -march=armv8-a+simd"
 export CFLAGS+=" -O3 -fomit-frame-pointer -fno-semantic-interposition -mllvm -hot-cold-split=true -fdata-sections -ffunction-sections -fmerge-all-constants -ftree-vectorize -fvectorize -fslp-vectorize -pipe -integrated-as"
