@@ -2,7 +2,7 @@ name: Build OpenJDK17 for Android
 run-name: "Build OpenJDK17 for Android"
 #6
 on:
-  push:
+  workflow_dispatch:
 
 jobs:
   build_android:
