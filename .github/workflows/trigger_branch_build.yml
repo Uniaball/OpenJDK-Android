@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  trigger-all-branches:
+  trigger:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -21,6 +21,11 @@ jobs:
           - branch: 27
             workflow: build27_os.yml
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
       - name: Trigger workflow on branch ${{ matrix.branch }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
