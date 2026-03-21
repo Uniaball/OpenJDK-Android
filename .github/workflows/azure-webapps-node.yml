@@ -1,0 +1,15 @@
+name: 114514
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@main
+
+    - name: 114514
+      run: |
+        ls -l /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy
+        file /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objcopy
