@@ -14,5 +14,5 @@ jobs:
         cd /usr/local/lib/android/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/linux-x86_64/bin/
         ls -l llvm-objcopy
         file llvm-objcopy
-        bash llvm-objcopy --version
-        bash llvm-objcopy --help
+        ./llvm-objcopy --version
+        ./llvm-objcopy --help
