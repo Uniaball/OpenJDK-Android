@@ -26,7 +26,8 @@ export JLINK_STRIP_ARG="--strip-native-debug-symbols=exclude-debuginfo-files:obj
     --no-header-files \
     --endian=little \
     --release-info="jdkout/release" \
-    --compress=0
+    --compress=0 \
+    --verbose
 
 cp "freetype/build_android-$TARGET_SHORT/lib/libfreetype.so" jreout/lib/
 cp "freetype/build_android-$TARGET_SHORT/lib/libfreetype.so" jdkout/lib/
