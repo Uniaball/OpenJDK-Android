@@ -10,8 +10,12 @@ export FREETYPE_DIR=${CURRENT_DIR}/freetype/build
 export CUPS_DIR=${CURRENT_DIR}/cups
 
 # arm64 specific flags
-Set_C_CPPFLAGS -O3 -fno-emulated-tls
-Set_LDFLAGS -Wl,-plugin-opt=-emulated-tls=0
+Set_C_CPPFLAGS -O3
+
+if [[ "${ANDROID_API}" -ge 32 ]]; then
+  Set_C_CPPFLAGS -fno-emulated-tls
+  Set_LDFLAGS -Wl,-plugin-opt=-emulated-tls=0
+fi # Real LTS support is started at Android 12L, I disabled emulated lts here for better performence.
 
 # Polly optimizations
 Set_C_CPPFLAGS -mllvm -polly -mllvm -polly-vectorizer=stripmine -mllvm -polly-invariant-load-hoisting -mllvm -polly-run-inliner -mllvm -polly-run-dce -mllvm -polly-detect-keep-going -mllvm -polly-ast-use-context -mllvm -polly-parallel
