@@ -1,0 +1,66 @@
+name: Build OpenJDK27 for Android
+
+on:
+  workflow_dispatch:
+
+env:
+  ANDROID_API: 26
+  TARGET_ARCH: arm64
+  TARGET_OS: android
+  TARGET_JAVA_VERSION: 27
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          max-size: "5G"
+          key: "android-${{ env.TARGET_ARCH }}-jdk${{ env.TARGET_JAVA_VERSION }}"
+          restore-keys: |
+            android-${{ env.TARGET_ARCH }}-jdk
+            android-${{ env.TARGET_ARCH }}-
+            android-
+          create-symlink: true
+
+      - name: Set up Java
+        uses: actions/setup-java@main
+        with:
+          distribution: 'zulu'
+          java-version: '26'
+
+      - name: Install dependencies
+        run: |
+          chmod +x ./scripts/install_deps.bash
+          ./scripts/install_deps.bash
+
+      - name: Build JDK
+        run: |
+          sudo chmod +x ./scripts/build_jdk.bash
+          bash ./scripts/build_jdk.bash
+
+      - name: Upload JRE build artifacts
+        uses: actions/upload-artifact@main
+        with:
+          name: openjdk-jre-build
+          path: openjdk/build/aarch64-linux-android/images/jre27*.tar.xz
+          if-no-files-found: error
+
+      - name: Upload JDK build artifacts
+        uses: actions/upload-artifact@main
+        with:
+          name: openjdk-jdk-build
+          path: openjdk/build/aarch64-linux-android/images/jdk27*.tar.xz
+          if-no-files-found: error
+
+      - name: Upload debuginfo build artifacts
+        uses: actions/upload-artifact@main
+        with:
+          name: openjdk-symbols-build
+          path: openjdk/build/aarch64-linux-android/images/symbols27*.tar.xz
+          if-no-files-found: error
