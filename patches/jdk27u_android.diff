@@ -2060,7 +2060,7 @@ diff --git a/src/hotspot/os/linux/os_perf_linux.cpp b/src/hotspot/os/linux/os_pe
 index 7caf8f98a00fb..7b2dd23a44ca2 100644
 --- a/src/hotspot/os/linux/os_perf_linux.cpp
 +++ b/src/hotspot/os/linux/os_perf_linux.cpp
-@@ -35,7 +35,18 @@
+@@ -35,7 +35,15 @@
  #include <dlfcn.h>
  #include <errno.h>
  #include <fcntl.h>
@@ -2075,11 +2075,10 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +#include <linux/rtnetlink.h>
 +#include <net/if.h>
 +#include <stdint.h>
++#include <stdlib.h>
 +#endif
  #include <limits.h>
- #include <pthread.h>
- #include <stdarg.h>
-@@ -47,6 +58,298 @@
+@@ -47,6 +55,298 @@
  #include <sys/types.h>
  #include <unistd.h>
  
@@ -2226,9 +2225,9 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +    return nullptr;
 +  }
 +};
-+ifaddrs_storage* new_ifaddrs_storage(ifaddrs** list) {
-+  ifaddrs_storage *storage = nullptr;
-+  memset(storage, 0, sizeof(*storage));
++static ifaddrs_storage* new_ifaddrs_storage(ifaddrs** list) {
++  ifaddrs_storage *storage = (ifaddrs_storage*) calloc(1, sizeof(ifaddrs_storage));
++  if (storage == nullptr) return nullptr;
 +  // push_front onto `list`.
 +  storage->ifa.ifa_next = *list;
 +  *list = reinterpret_cast<ifaddrs*>(storage);
@@ -2244,6 +2243,7 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +    ifinfomsg* ifi = reinterpret_cast<ifinfomsg*>(NLMSG_DATA(hdr));
 +    // Create a new ifaddr entry, and set the interface index and flags.
 +    ifaddrs_storage* new_addr = new_ifaddrs_storage(out);
++    if (new_addr == nullptr) return;
 +    new_addr->interface_index = ifi->ifi_index;
 +    new_addr->ifa.ifa_flags = ifi->ifi_flags;
 +    // Go through the various bits of information and find the name.
@@ -2279,6 +2279,7 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +    if (addr == nullptr) return;
 +    // Create a new ifaddr entry and copy what we already know.
 +    ifaddrs_storage* new_addr = new_ifaddrs_storage(out);
++    if (new_addr == nullptr) return;
 +    // We can just copy the name rather than look for IFA_LABEL.
 +    strcpy(new_addr->name, addr->name);
 +    new_addr->ifa.ifa_name = new_addr->name;
@@ -2335,7 +2336,7 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +  // The kernel keeps packets under 8KiB (NLMSG_GOODSIZE),
 +  // but that's a bit too large to go on the stack.
 +  size_t buf_len = 8192;
-+  char* buf = NEW_C_HEAP_ARRAY(char, buf_len, mtInternal);
++  char* buf = (char*) malloc(buf_len);
 +  if (buf == nullptr) return -1;
 +  // Open the netlink socket and ask for all the links and addresses.
 +  int fd = socket(PF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
@@ -2350,7 +2351,7 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +  {
 +    int saved_errno = errno;
 +    close(fd);
-+    FREE_C_HEAP_ARRAY(buf);
++    free(buf);
 +    errno = saved_errno;
 +  }
 +  return okay ? 0 : -1;
