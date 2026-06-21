@@ -2056,7 +2056,7 @@ index 356b52dfb3487..d2cd0e043c9f9 100644
  }
  
  JNIEXPORT jint JNICALL
-diff --git a/src/hotspot/os/linux/old_os_perf_linux.cpp b/src/hotspot/os/linux/os_perf_linux.cpp
+diff --git a/src/hotspot/os/linux/os_perf_linux.cpp b/src/hotspot/os/linux/os_perf_linux.cpp
 index 0e4d671..bce2bee 100644
 --- a/src/hotspot/os/linux/os_perf_linux.cpp
 +++ b/src/hotspot/os/linux/os_perf_linux.cpp
