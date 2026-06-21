@@ -1148,26 +1148,21 @@ index b2dedca35..c01ccfb8d 100644
          len = strlen(buf);
          p = strrchr(buf, '/');
 diff --git a/src/java.instrument/unix/native/libinstrument/EncodingSupport_md.c b/src/java.instrument/unix/native/libinstrument/EncodingSupport_md.c
-index 490eea9a5ac33..8350a6797187e 100644
+index 490eea9a5..27ee1c23e 100644
 --- a/src/java.instrument/unix/native/libinstrument/EncodingSupport_md.c
 +++ b/src/java.instrument/unix/native/libinstrument/EncodingSupport_md.c
-@@ -22,6 +22,8 @@
-  * or visit www.oracle.com if you need additional information or have any
-  * questions.
-  */
-+
-+#include <iconv.h>
- #include <stdio.h>
- #include <stddef.h>
- #include <stdlib.h>
-@@ -29,7 +31,6 @@
- #include <ctype.h>
- #include <locale.h>
- #include <langinfo.h>
--#include <iconv.h>
+@@ -65,7 +65,11 @@ utfInitialize(void)
+     (void)setlocale(LC_ALL, "");
  
- /* Routines to convert back and forth between Platform Encoding and UTF-8 */
- 
+     /* Get the codeset name */
++#ifndef __ANDROID__
+     codeset = (char*)nl_langinfo(CODESET);
++#else
++    codeset = "ASCII"; // (MB_CUR_MAX == 1) ? "ASCII" : "UTF-8";
++#endif
+     if ( codeset == NULL || codeset[0] == 0 ) {
+         UTF_DEBUG(("NO codeset returned by nl_langinfo(CODESET)\n"));
+         return;
 diff --git a/src/jdk.jdwp.agent/share/native/libjdwp/utf_util.c b/src/jdk.jdwp.agent/share/native/libjdwp/utf_util.c
 index f5573930d..b64e30046 100644
 --- a/src/jdk.jdwp.agent/share/native/libjdwp/utf_util.c
