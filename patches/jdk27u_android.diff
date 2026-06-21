@@ -2056,11 +2056,11 @@ index 356b52dfb3487..d2cd0e043c9f9 100644
  }
  
  JNIEXPORT jint JNICALL
-diff --git a/src/hotspot/os/linux/os_perf_linux.cpp b/src/hotspot/os/linux/os_perf_linux.cpp
-index 7caf8f98a00fb..7b2dd23a44ca2 100644
+diff --git a/src/hotspot/os/linux/old_os_perf_linux.cpp b/src/hotspot/os/linux/os_perf_linux.cpp
+index 0e4d671..bce2bee 100644
 --- a/src/hotspot/os/linux/os_perf_linux.cpp
 +++ b/src/hotspot/os/linux/os_perf_linux.cpp
-@@ -35,7 +35,15 @@
+@@ -36,7 +36,19 @@
  #include <dlfcn.h>
  #include <errno.h>
  #include <fcntl.h>
@@ -2078,7 +2078,9 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +#include <stdlib.h>
 +#endif
  #include <limits.h>
-@@ -47,6 +55,298 @@
+ #include <pthread.h>
+ #include <stdarg.h>
+@@ -47,6 +59,289 @@
  #include <sys/types.h>
  #include <unistd.h>
  
@@ -2365,18 +2367,10 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +}
 +#endif
 +
-+/**
-+ * [getifaddrs(3)](http://man7.org/linux/man-pages/man3/getifaddrs.3.html) creates a linked list
-+ * of `struct ifaddrs`. The list must be freed by freeifaddrs().
-+ *
-+ * Returns 0 and stores the list in `*__list_ptr` on success,
-+ * and returns -1 and sets `errno` on failure.
-+ *
-+ * Available since API level 24.
-+ */
  /**
     /proc/[number]/stat
                Status information about the process.  This is used by ps(1).  It is defined in /usr/src/linux/fs/proc/array.c.
+
 diff --git a/make/conf/branding.conf b/make/conf/branding.conf
 index 912e4f622dbae..8dac110adecc0 100644
 --- a/make/conf/branding.conf
@@ -2685,3 +2679,4 @@ index 4b5cfabebfbc5..3c185a05a8b9a 100644
      my_statx_func = (statx_func*) dlsym(RTLD_DEFAULT, "statx");
      if (my_statx_func != NULL) {
          capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
+         
