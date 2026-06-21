@@ -23,45 +23,35 @@ index 6a7109342..2d74ffc5b 100644
    fi
    if test "x$with_freetype" != "x" ; then
 diff --git a/make/autoconf/libraries.m4 b/make/autoconf/libraries.m4
-index a50ce5731..eb9545984 100644
+index 5daacdc1ced54..c669b5191c7e0 100644
 --- a/make/autoconf/libraries.m4
 +++ b/make/autoconf/libraries.m4
-@@ -42,8 +42,8 @@ m4_include([lib-tests.m4])
- AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
- [
+@@ -44,6 +44,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
    # Check if X11 is needed
--  if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx; then
--    # No X11 support on windows or macosx
-+  if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx || test "x$OPENJDK_TARGET_OS" = xandroid; then
-+    # No X11 support on windows, macosx or android
+   if test "x$OPENJDK_TARGET_OS" = xwindows ||
+      test "x$OPENJDK_TARGET_OS" = xmacosx ||
++     test "x$OPENJDK_TARGET_OS" = xandroid ||
+      test "x$ENABLE_HEADLESS_ONLY" = xtrue; then
      NEEDS_LIB_X11=false
    else
-     # All other instances need X11, even if building headless only, libawt still
-@@ -52,8 +52,8 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
-   fi
-
-   # Check if fontconfig is needed
--  if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx; then
--    # No fontconfig support on windows or macosx
-+  if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx || test "x$OPENJDK_TARGET_OS" = xandroid; then
-+    # No fontconfig support on windows, macosx or android
-     NEEDS_LIB_FONTCONFIG=false
+@@ -188,7 +189,7 @@ AC_DEFUN_ONCE([LIB_SETUP_MISC_LIBS],
+   LIBS="$save_LIBS"
+ 
+   # Setup posix pthread support
+-  if test "x$OPENJDK_TARGET_OS" != "xwindows"; then
++  if test "x$OPENJDK_TARGET_OS" != "xwindows" && test "x$OPENJDK_TARGET_OS" != "xandroid"; then
+     LIBPTHREAD="-lpthread"
    else
-     # All other instances need fontconfig, even if building headless only,
-@@ -74,12 +74,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
-     NEEDS_LIB_FREETYPE=true
+     LIBPTHREAD=""
+@@ -203,7 +204,7 @@ AC_DEFUN_ONCE([LIB_SETUP_MISC_LIBS],
+   else
+     ICONV_CFLAGS=
+     ICONV_LDFLAGS=
+-    ICONV_LIBS=
++    ICONV_LIBS=-liconv
    fi
-
--  # Check if alsa is needed
--  if test "x$OPENJDK_TARGET_OS" = xlinux; then
--    NEEDS_LIB_ALSA=true
--  else
--    NEEDS_LIB_ALSA=false
--  fi
-+  NEEDS_LIB_ALSA=false
-
-   # Check if ffi is needed
-   if HOTSPOT_CHECK_JVM_VARIANT(zero) || test "x$ENABLE_FALLBACK_LINKER" = "xtrue"; then
+   AC_SUBST(ICONV_CFLAGS)
+   AC_SUBST(ICONV_LDFLAGS)
 diff --git a/make/autoconf/platform.m4 b/make/autoconf/platform.m4
 index babb24a9b..bcf1e9b41 100644
 --- a/make/autoconf/platform.m4
@@ -2436,130 +2426,6 @@ index 1c91e9d2599db..16f40d7c1258a 100644
 +//FORBID_C_FUNCTION(void* reallocf(void*, size_t), /* not noexcept */, "use os::realloc");
  
  #endif // OS_POSIX_FORBIDDENFUNCTIONS_POSIX_HPP
-diff --git a/src/hotspot/os_cpu/linux_arm/linux_arm_32.S b/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-index a866858dae520..9629aef8e251b 100644
---- a/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-+++ b/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-@@ -66,7 +66,7 @@ dw_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     dw_f2b_loop_32
- dw_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     disjoint_words_finish
-         cmp     r2, #16
-         blt        disjoint_words_small
-@@ -114,7 +114,7 @@ cw_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     cw_f2b_loop_32
- cw_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_words_finish
-         cmp     r2, #16
-         blt        conjoint_words_small
-@@ -147,7 +147,7 @@ cw_b2f_loop_32:
-         stmdb to!, {r3-r9,ip}
-         bgt     cw_b2f_loop_32
- cw_b2f_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_words_finish
-         cmp     r2, #16
-         blt        cw_b2f_copy_small
-@@ -199,7 +199,7 @@ cs_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     cs_f2b_loop_32
- cs_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_shorts_finish
-         movs    r6, r2, lsr #3
-         .align 3
-@@ -215,11 +215,11 @@ cs_f2b_4:
-         beq     conjoint_shorts_finish
-         cmp     r2, #4
-         ldrh    r3, [from], #2
--        ldrgeh  r4, [from], #2
--        ldrgth  r5, [from], #2
-+        ldrhgt  r4, [from], #2
-+        ldrhgt  r5, [from], #2
-         strh    r3, [to], #2
--        strgeh  r4, [to], #2
--        strgth  r5, [to], #2
-+        strhge  r4, [to], #2
-+        strhgt  r5, [to], #2
-         b       conjoint_shorts_finish
- 
-         # Destination not aligned
-@@ -277,11 +277,11 @@ cs_f2b_4_u:
-         beq     conjoint_shorts_finish
-         cmp     r2, #4
-         ldrh    r3, [from], #2
--        ldrgeh  r4, [from], #2
--        ldrgth  r5, [from], #2
-+        ldrhgt  r4, [from], #2
-+        ldrhgt  r5, [from], #2
-         strh    r3, [to], #2
--        strgeh  r4, [to], #2
--        strgth  r5, [to], #2
-+        strhge  r4, [to], #2
-+        strhgt  r5, [to], #2
-         b       conjoint_shorts_finish
- 
-         # Src and dest overlap, copy in a descending order
-@@ -304,7 +304,7 @@ cs_b2f_loop_32:
-         stmdb to!, {r3-r9,ip}
-         bgt     cs_b2f_loop_32
- cs_b2f_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_shorts_finish
-         cmp     r2, #24
-         blt     cs_b2f_16
-@@ -330,11 +330,11 @@ cs_b2f_8:
- cs_b2f_all_copy:
-         cmp     r2, #4
-         ldrh    r3, [from, #-2]!
--        ldrgeh  r4, [from, #-2]!
--        ldrgth  r5, [from, #-2]!
-+        ldrhgt  r4, [from, #-2]!
-+        ldrhgt  r5, [from, #-2]!
-         strh    r3, [to, #-2]!
--        strgeh  r4, [to, #-2]!
--        strgth  r5, [to, #-2]!
-+        strhge  r4, [to, #-2]!
-+        strhgt  r5, [to, #-2]!
-         b       conjoint_shorts_finish
- 
-         # Destination not aligned
-@@ -369,7 +369,7 @@ cs_b2f_16_loop_u:
-         bgt     cs_b2f_16_loop_u
-         beq     conjoint_shorts_finish
- cs_b2f_16_loop_u_finished:
--        addlts  r2, #16
-+        addslt  r2, #16
-         ldr     r3, [from]
-         cmp     r2, #10
-         blt     cs_b2f_2_u_loop
-@@ -432,7 +432,7 @@ cl_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     cl_f2b_loop_32
- cl_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_longs_finish
- conjoint_longs_small:
-         cmp     r2, #16
-@@ -465,7 +465,7 @@ cl_b2f_loop_32:
-         stmdb         to!, {r3 - r9, ip}
-         bgt     cl_b2f_loop_32
- cl_b2f_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_longs_finish
-         cmp     r2, #16
-         blt        cl_b2f_copy_8
 diff --git a/src/hotspot/share/cppstdlib/cstdlib.hpp b/src/hotspot/share/cppstdlib/cstdlib.hpp
 index 2b58e7378820c..39889261ce6df 100644
 --- a/src/hotspot/share/cppstdlib/cstdlib.hpp
@@ -2653,19 +2519,6 @@ index 9b3c65b0656ae..bd359cbce6c88 100644
 +#endif // __ANDROID__
 +
  #endif // SHARE_UTILITIES_FORBIDDENFUNCTIONS_HPP
-diff --git a/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp b/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
-index ab7498b313c5b..a3245ed0c2aa6 100644
---- a/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
-+++ b/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
-@@ -36,7 +36,7 @@ static uint32_t* z_node_to_numa_id = nullptr;
- static uint32_t* z_node_to_numa_id = nullptr;
- 
- void ZNUMA::pd_initialize() {
--  _enabled = UseNUMA;
-+  _enabled = false;
- 
-   size_t configured_nodes = 0;
- 
 diff --git a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
 index 4b5cfabebfbc5..3c185a05a8b9a 100644
 --- a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
