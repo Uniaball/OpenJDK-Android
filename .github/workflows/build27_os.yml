@@ -32,7 +32,7 @@ jobs:
         echo "cups_hash=$(git ls-remote https://github.com/OpenPrinting/cups HEAD | cut -f1)" >> $GITHUB_OUTPUT
 
     - name: Cache Freetype build
-      uses: actions/cache@v4
+      uses: actions/cache@main
       with:
         path: freetype/build_android-arm64
         key: freetype-build-${{ runner.os }}-${{ steps.upstream.outputs.freetype_hash }}-${{ hashFiles('buildlibs.sh') }}
@@ -40,7 +40,7 @@ jobs:
           freetype-build-${{ runner.os }}-
 
     - name: Cache CUPS source
-      uses: actions/cache@v4
+      uses: actions/cache@main
       with:
         path: cups
         key: cups-src-${{ runner.os }}-${{ steps.upstream.outputs.cups_hash }}-${{ hashFiles('getlibs.sh') }}
@@ -48,7 +48,7 @@ jobs:
           cups-src-${{ runner.os }}-
 
     - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2
+      uses: hendrikmuhs/ccache-action@main
       with:
         key: ${{ runner.os }}-${{ github.job }}
         max-size: 2G

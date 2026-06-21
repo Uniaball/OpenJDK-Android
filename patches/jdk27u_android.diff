@@ -26,7 +26,8 @@ diff --git a/make/autoconf/libraries.m4 b/make/autoconf/libraries.m4
 index a50ce5731..eb9545984 100644
 --- a/make/autoconf/libraries.m4
 +++ b/make/autoconf/libraries.m4
-@@ -42,8 +42,8 @@ m4_include([lib-tests.m4])
+@@ -40,20 +40,20 @@ m4_include([lib-tests.m4])
+ 
  AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
  [
    # Check if X11 is needed
@@ -37,7 +38,7 @@ index a50ce5731..eb9545984 100644
      NEEDS_LIB_X11=false
    else
      # All other instances need X11, even if building headless only, libawt still
-@@ -52,8 +52,8 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
+     NEEDS_LIB_X11=true
    fi
  
    # Check if fontconfig is needed
@@ -48,6 +49,23 @@ index a50ce5731..eb9545984 100644
      NEEDS_LIB_FONTCONFIG=false
    else
      # All other instances need fontconfig, even if building headless only,
+     NEEDS_LIB_FONTCONFIG=true
+   fi
+ 
+@@ -74,12 +74,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
+     NEEDS_LIB_FREETYPE=true
+   fi
+ 
+-  # Check if alsa is needed
+-  if test "x$OPENJDK_TARGET_OS" = xlinux; then
+-    NEEDS_LIB_ALSA=true
+-  else
+-    NEEDS_LIB_ALSA=false
+-  fi
++  NEEDS_LIB_ALSA=false
+ 
+   # Check if ffi is needed
+   if HOTSPOT_CHECK_JVM_VARIANT(zero) || test "x$ENABLE_FALLBACK_LINKER" = "xtrue"; then
 diff --git a/make/autoconf/platform.m4 b/make/autoconf/platform.m4
 index babb24a9b..bcf1e9b41 100644
 --- a/make/autoconf/platform.m4
@@ -115,7 +133,7 @@ index 0eb0fb2dd..e0431de0b 100644
 +  SRC_SUBDIRS += linux/classes
 +endif
 +
- 
+
  SRC_SUBDIRS += $(OPENJDK_TARGET_OS)/classes
  ifneq ($(OPENJDK_TARGET_OS), $(OPENJDK_TARGET_OS_TYPE))
 diff --git a/make/common/Utils.gmk b/make/common/Utils.gmk
@@ -575,7 +593,7 @@ index 000000000..605302c09
 +   <http://www.gnu.org/licenses/>.  */
 +
 +#ifndef _FPU_CONTROL_H
-+#define _FPU_CONTROL_H	1
++#define _FPU_CONTROL_H        1
 +
 +/* Note that this file sets on x86-64 only the x87 FPU, it does not
 +   touch the SSE unit.  */
@@ -623,7 +641,7 @@ index 000000000..605302c09
 +#define _FPU_MASK_PM  0x20
 +
 +/* precision control */
-+#define _FPU_EXTENDED 0x300	/* libm requires double extended precision.  */
++#define _FPU_EXTENDED 0x300        /* libm requires double extended precision.  */
 +#define _FPU_DOUBLE   0x200
 +#define _FPU_SINGLE   0x0
 +
@@ -663,7 +681,7 @@ index 000000000..605302c09
 +/* Default control word set at startup.  */
 +extern fpu_control_t __fpu_control;
 +
-+#endif	/* fpu_control.h */
++#endif        /* fpu_control.h */
 diff --git a/src/hotspot/share/utilities/elfFile.hpp b/src/hotspot/share/utilities/elfFile.hpp
 index 32ce08821..7103f3736 100644
 --- a/src/hotspot/share/utilities/elfFile.hpp
@@ -1663,7 +1681,6 @@ index c6e012ecf..d4f956756 100644
 +  }
  
  #endif // OS_CPU_LINUX_AARCH64_JAVATHREAD_LINUX_AARCH64_HPP
-
 diff --git a/src/java.base/unix/native/libnet/net_util_md.c b/src/java.base/unix/native/libnet/net_util_md.c
 index 4ec11a136..01b85db4d 100644
 --- a/src/java.base/unix/native/libnet/net_util_md.c
@@ -1708,24 +1725,6 @@ index 7a24815..d20a9ff 100644
        fi
        UTIL_LOOKUP_PROGS(BUILD_NM, nm gcc-nm)
        UTIL_LOOKUP_PROGS(BUILD_AR, ar gcc-ar lib)
-diff --git a/make/autoconf/libraries.m4 b/make/autoconf/libraries.m4
-index a1fc81564..fc0356e92 100644
---- a/make/autoconf/libraries.m4
-+++ b/make/autoconf/libraries.m4
-@@ -74,12 +74,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
-     NEEDS_LIB_FREETYPE=true
-   fi
- 
--  # Check if alsa is needed
--  if test "x$OPENJDK_TARGET_OS" = xlinux; then
--    NEEDS_LIB_ALSA=true
--  else
--    NEEDS_LIB_ALSA=false
--  fi
-+  NEEDS_LIB_ALSA=false
- 
-   # Check if ffi is needed
-   if HOTSPOT_CHECK_JVM_VARIANT(zero) || test "x$ENABLE_FALLBACK_LINKER" = "xtrue"; then
 diff --git a/make/hotspot/lib/JvmFlags.gmk b/make/hotspot/lib/JvmFlags.gmk
 index e5929ab..08597d5 100644
 --- a/make/hotspot/lib/JvmFlags.gmk
@@ -1756,21 +1755,6 @@ index 61214a4..87e3114 100644
    clock_tics_per_sec = CLK_TCK;
  #else
    clock_tics_per_sec = checked_cast<int>(sysconf(_SC_CLK_TCK));
-diff --git a/src/java.base/unix/native/libnet/net_util_md.h b/src/java.base/unix/native/libnet/net_util_md.h
-index 902cf96..a3f24b4 100644
---- a/src/java.base/unix/native/libnet/net_util_md.h
-+++ b/src/java.base/unix/native/libnet/net_util_md.h
-@@ -30,6 +30,10 @@
- #include <poll.h>
- #include <sys/socket.h>
- 
-+#ifdef __ANDROID__
-+#include <netinet/in.h>
-+#endif
-+
- /************************************************************************
-  * Macros and constants
-  */
 diff --git a/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h b/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
 index 2dc0b61..78508bc 100644
 --- a/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
@@ -2018,19 +2002,6 @@ index 1d0c8d21d3757..7cc8885a8c17c 100644
      } else {
          errorDetail = "none";
      }
-diff --git a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-index fbf996886ae40..9218aa5605914 100644
---- a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-+++ b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-@@ -382,7 +382,7 @@ Java_sun_nio_fs_UnixNativeDispatcher_init(JNIEnv* env, jclass this)
- #ifdef _DARWIN_FEATURE_64_BIT_INODE
-     capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
- #endif
--#if defined(__linux__)
-+#if defined(__linux__) && !defined(__ANDROID__)
-     my_statx_func = (statx_func*) dlsym(RTLD_DEFAULT, "statx");
-     if (my_statx_func != NULL) {
-         capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
 diff --git a/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c b/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
 index 0d352c36bbebe..064bf7439f021 100644
 --- a/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
@@ -2195,8 +2166,6 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +void freeifaddrs(struct ifaddrs* __ptr); // __INTRODUCED_IN(24);
 +
 +__END_DECLS
-+
-+#define nullptr 0
 +
 +// The public ifaddrs struct is full of pointers. Rather than track several
 +// different allocations, we use a maximally-sized structure with the public
@@ -2385,7 +2354,7 @@ index 7caf8f98a00fb..7b2dd23a44ca2 100644
 +  {
 +    int saved_errno = errno;
 +    close(fd);
-+    FREE_C_HEAP_ARRAY(char, buf);
++    FREE_C_HEAP_ARRAY(buf);
 +    errno = saved_errno;
 +  }
 +  return okay ? 0 : -1;
@@ -2488,7 +2457,7 @@ index a866858dae520..9629aef8e251b 100644
 +        addslt  r2, #32
          beq     disjoint_words_finish
          cmp     r2, #16
-         blt	disjoint_words_small
+         blt        disjoint_words_small
 @@ -114,7 +114,7 @@ cw_f2b_loop_32:
          stmia to!, {r3 - r9, ip}
          bgt     cw_f2b_loop_32
@@ -2497,7 +2466,7 @@ index a866858dae520..9629aef8e251b 100644
 +        addslt  r2, #32
          beq     conjoint_words_finish
          cmp     r2, #16
-         blt	conjoint_words_small
+         blt        conjoint_words_small
 @@ -147,7 +147,7 @@ cw_b2f_loop_32:
          stmdb to!, {r3-r9,ip}
          bgt     cw_b2f_loop_32
@@ -2506,7 +2475,7 @@ index a866858dae520..9629aef8e251b 100644
 +        addslt  r2, #32
          beq     conjoint_words_finish
          cmp     r2, #16
-         blt	cw_b2f_copy_small
+         blt        cw_b2f_copy_small
 @@ -199,7 +199,7 @@ cs_f2b_loop_32:
          stmia to!, {r3 - r9, ip}
          bgt     cs_f2b_loop_32
@@ -2592,14 +2561,14 @@ index a866858dae520..9629aef8e251b 100644
  conjoint_longs_small:
          cmp     r2, #16
 @@ -465,7 +465,7 @@ cl_b2f_loop_32:
-         stmdb 	to!, {r3 - r9, ip}
+         stmdb         to!, {r3 - r9, ip}
          bgt     cl_b2f_loop_32
  cl_b2f_loop_32_finish:
 -        addlts  r2, #32
 +        addslt  r2, #32
          beq     conjoint_longs_finish
          cmp     r2, #16
-         blt	cl_b2f_copy_8
+         blt        cl_b2f_copy_8
 diff --git a/src/hotspot/share/cppstdlib/cstdlib.hpp b/src/hotspot/share/cppstdlib/cstdlib.hpp
 index 2b58e7378820c..39889261ce6df 100644
 --- a/src/hotspot/share/cppstdlib/cstdlib.hpp
@@ -2697,7 +2666,11 @@ diff --git a/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp b/src/hotspot/os/linux/gc
 index ab7498b313c5b..a3245ed0c2aa6 100644
 --- a/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
 +++ b/src/hotspot/os/linux/gc/z/zNUMA_linux.cpp
-@@ -36,7 +36,7 @@ static uint* z_numa_id_to_node = nullptr;
+@@ -31,12 +31,12 @@
+ #include "gc/z/zNUMA.hpp"
+ #include "runtime/os.hpp"
+ 
+ static uint* z_numa_id_to_node = nullptr;
  static uint32_t* z_node_to_numa_id = nullptr;
  
  void ZNUMA::pd_initialize() {
@@ -2706,11 +2679,15 @@ index ab7498b313c5b..a3245ed0c2aa6 100644
  
    size_t configured_nodes = 0;
  
+   // ... rest of function
 diff --git a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
 index 4b5cfabebfbc5..3c185a05a8b9a 100644
 --- a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
 +++ b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-@@ -375,7 +375,7 @@ Java_sun_nio_fs_UnixNativeDispatcher_init(JNIEnv* env, jclass this)
+@@ -372,10 +372,12 @@ Java_sun_nio_fs_UnixNativeDispatcher_init(JNIEnv* env, jclass this)
+     my_fgetxattr_func = (fgetxattr_func*) dlsym(RTLD_DEFAULT, "fgetxattr");
+ #endif
+ 
  #ifdef _DARWIN_FEATURE_64_BIT_INODE
      capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
  #endif
@@ -2719,3 +2696,4 @@ index 4b5cfabebfbc5..3c185a05a8b9a 100644
      my_statx_func = (statx_func*) dlsym(RTLD_DEFAULT, "statx");
      if (my_statx_func != NULL) {
          capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
+     }
