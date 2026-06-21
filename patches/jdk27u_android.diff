@@ -26,8 +26,7 @@ diff --git a/make/autoconf/libraries.m4 b/make/autoconf/libraries.m4
 index a50ce5731..eb9545984 100644
 --- a/make/autoconf/libraries.m4
 +++ b/make/autoconf/libraries.m4
-@@ -40,20 +40,20 @@ m4_include([lib-tests.m4])
- 
+@@ -42,8 +42,8 @@ m4_include([lib-tests.m4])
  AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
  [
    # Check if X11 is needed
@@ -38,9 +37,9 @@ index a50ce5731..eb9545984 100644
      NEEDS_LIB_X11=false
    else
      # All other instances need X11, even if building headless only, libawt still
-     NEEDS_LIB_X11=true
+@@ -52,8 +52,8 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
    fi
- 
+
    # Check if fontconfig is needed
 -  if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx; then
 -    # No fontconfig support on windows or macosx
@@ -49,14 +48,10 @@ index a50ce5731..eb9545984 100644
      NEEDS_LIB_FONTCONFIG=false
    else
      # All other instances need fontconfig, even if building headless only,
-     NEEDS_LIB_FONTCONFIG=true
-   fi
- 
-   # Check if cups is needed
 @@ -74,12 +74,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
      NEEDS_LIB_FREETYPE=true
    fi
- 
+
 -  # Check if alsa is needed
 -  if test "x$OPENJDK_TARGET_OS" = xlinux; then
 -    NEEDS_LIB_ALSA=true
@@ -64,7 +59,7 @@ index a50ce5731..eb9545984 100644
 -    NEEDS_LIB_ALSA=false
 -  fi
 +  NEEDS_LIB_ALSA=false
- 
+
    # Check if ffi is needed
    if HOTSPOT_CHECK_JVM_VARIANT(zero) || test "x$ENABLE_FALLBACK_LINKER" = "xtrue"; then
 diff --git a/make/autoconf/platform.m4 b/make/autoconf/platform.m4
