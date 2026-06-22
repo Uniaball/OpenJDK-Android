@@ -184,6 +184,7 @@ index f5f134d..892cc8a 100644
 +++ b/make/modules/java.desktop/Lib.gmk
 @@ -38,48 +38,50 @@ include lib/AwtLibraries.gmk
  include lib/ClientLibraries.gmk
+ 
  ifeq ($(call isTargetOs, aix), false)
 -  ##############################################################################
 -  # Build libjsound
@@ -271,6 +272,7 @@ index f5f134d..892cc8a 100644
 -
 -  TARGETS += $(BUILD_LIBJSOUND)
  endif
+ 
  ifeq ($(call isTargetOs, macosx), true)
 
 diff --git a/src/hotspot/cpu/arm/icache_arm.cpp b/src/hotspot/cpu/arm/icache_arm.cpp
