@@ -178,6 +178,101 @@ index 41da22f8cb2f4..950f341d6f0db 100644
    ##############################################################################
    ## Build libsimdsort
    ##############################################################################
+diff --git a/make/modules/java.desktop/Lib.gmk b/make/modules/java.desktop/Lib.gmk
+index f5f134d..892cc8a 100644
+--- a/make/modules/java.desktop/Lib.gmk
++++ b/make/modules/java.desktop/Lib.gmk
+@@ -38,48 +38,50 @@ include lib/AwtLibraries.gmk
+ include lib/ClientLibraries.gmk
+ ifeq ($(call isTargetOs, aix), false)
+-  ##############################################################################
+-  # Build libjsound
+-  ##############################################################################
+-
+-  LIBJSOUND_CFLAGS := \
+-      $(ALSA_CFLAGS) \
+-      -DX_PLATFORM=X_$(OPENJDK_TARGET_OS_UPPERCASE) \
+-      -DUSE_PORTS=TRUE \
+-      -DUSE_DAUDIO=TRUE \
+-      -DUSE_PLATFORM_MIDI_OUT=TRUE \
+-      -DUSE_PLATFORM_MIDI_IN=TRUE \
+-      #
+-
+-  LIBJSOUND_LINK_TYPE := C
+-  ifeq ($(call isTargetOs, macosx), true)
+-    LIBJSOUND_LINK_TYPE := C++
++  ifneq ($(call isTargetOs, android), true)
++    ##############################################################################
++    # Build libjsound
++    ##############################################################################
++
++    LIBJSOUND_CFLAGS := \
++        $(ALSA_CFLAGS) \
++        -DX_PLATFORM=X_$(OPENJDK_TARGET_OS_UPPERCASE) \
++        -DUSE_PORTS=TRUE \
++        -DUSE_DAUDIO=TRUE \
++        -DUSE_PLATFORM_MIDI_OUT=TRUE \
++        -DUSE_PLATFORM_MIDI_IN=TRUE \
++        #
++
++    LIBJSOUND_LINK_TYPE := C
++    ifeq ($(call isTargetOs, macosx), true)
++      LIBJSOUND_LINK_TYPE := C++
++    endif
++
++    $(eval $(call SetupJdkLibrary, BUILD_LIBJSOUND, \
++        NAME := jsound, \
++        LINK_TYPE := $(LIBJSOUND_LINK_TYPE), \
++        OPTIMIZATION := LOW, \
++        EXTRA_HEADER_DIRS := java.base:libjava, \
++        CFLAGS := $(LIBJSOUND_CFLAGS), \
++        CXXFLAGS := $(LIBJSOUND_CFLAGS), \
++        DISABLED_WARNINGS_gcc := undef unused-variable, \
++        DISABLED_WARNINGS_clang := undef unused-variable, \
++        DISABLED_WARNINGS_clang_PLATFORM_API_MacOSX_MidiUtils.c := \
++            unused-but-set-variable, \
++        DISABLED_WARNINGS_clang_DirectAudioDevice.c := unused-function, \
++        LIBS_linux := $(ALSA_LIBS), \
++        LIBS_macosx := \
++            -framework AudioToolbox \
++            -framework AudioUnit \
++            -framework CoreAudio \
++            -framework CoreFoundation \
++            -framework CoreMIDI \
++            -framework CoreServices, \
++        LIBS_windows := advapi32.lib dsound.lib ole32.lib user32.lib winmm.lib, \
++    ))
++
++    TARGETS += $(BUILD_LIBJSOUND)
+   endif
+-
+-  $(eval $(call SetupJdkLibrary, BUILD_LIBJSOUND, \
+-      NAME := jsound, \
+-      LINK_TYPE := $(LIBJSOUND_LINK_TYPE), \
+-      OPTIMIZATION := LOW, \
+-      EXTRA_HEADER_DIRS := java.base:libjava, \
+-      CFLAGS := $(LIBJSOUND_CFLAGS), \
+-      CXXFLAGS := $(LIBJSOUND_CFLAGS), \
+-      DISABLED_WARNINGS_gcc := undef unused-variable, \
+-      DISABLED_WARNINGS_clang := undef unused-variable, \
+-      DISABLED_WARNINGS_clang_PLATFORM_API_MacOSX_MidiUtils.c := \
+-          unused-but-set-variable, \
+-      DISABLED_WARNINGS_clang_DirectAudioDevice.c := unused-function, \
+-      LIBS_linux := $(ALSA_LIBS), \
+-      LIBS_macosx := \
+-          -framework AudioToolbox \
+-          -framework AudioUnit \
+-          -framework CoreAudio \
+-          -framework CoreFoundation \
+-          -framework CoreMIDI \
+-          -framework CoreServices, \
+-      LIBS_windows := advapi32.lib dsound.lib ole32.lib user32.lib winmm.lib, \
+-  ))
+-
+-  TARGETS += $(BUILD_LIBJSOUND)
+ endif
+ ifeq ($(call isTargetOs, macosx), true)
+
 diff --git a/src/hotspot/cpu/arm/icache_arm.cpp b/src/hotspot/cpu/arm/icache_arm.cpp
 index 61fcb8a35..93d2ad4f4 100644
 --- a/src/hotspot/cpu/arm/icache_arm.cpp

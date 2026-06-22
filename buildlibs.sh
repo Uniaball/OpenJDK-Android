@@ -50,6 +50,7 @@ cd build_android
 
 cmake .. \
     -DANDROID_PLATFORM=${API} \
+    -DANDROID_ABI=arm64-v8a \
     -DANDROID_TOOLCHAIN_NAME=${TARGET} \
     -DANDROID_TOOLCHAIN=clang \
     -DCMAKE_ANDROID_STL_TYPE=c++_static \
