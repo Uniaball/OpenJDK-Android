@@ -202,7 +202,7 @@ index f5f134d..892cc8a 100644
 -  LIBJSOUND_LINK_TYPE := C
 -  ifeq ($(call isTargetOs, macosx), true)
 -    LIBJSOUND_LINK_TYPE := C++
-+  ifneq ($(call isTargetOs, android), true)
++  ifneq ($(call isTargetOs, linux), true)
 +    ##############################################################################
 +    # Build libjsound
 +    ##############################################################################
