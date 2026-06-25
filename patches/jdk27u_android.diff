@@ -90,10 +90,18 @@ index ac372d9..fe60f18 100644
  
 
 diff --git a/make/autoconf/toolchain.m4 b/make/autoconf/toolchain.m4
-index adb4e182d..e2ee96798 100644
+index aceeba1..7bfe658 100644
 --- a/make/autoconf/toolchain.m4
 +++ b/make/autoconf/toolchain.m4
-@@ -903,11 +903,14 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_BUILD_COMPILERS],
+@@ -39,6 +39,7 @@ VALID_TOOLCHAINS_all="gcc clang microsoft"
+ 
+ # These toolchains are valid on different platforms
+ VALID_TOOLCHAINS_linux="gcc clang"
++VALID_TOOLCHAINS_android="clang gcc"
+ VALID_TOOLCHAINS_macosx="clang"
+ VALID_TOOLCHAINS_aix="clang"
+ VALID_TOOLCHAINS_windows="microsoft"
+@@ -881,11 +882,13 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_BUILD_COMPILERS],
  
      PATH="$OLDPATH"
  
@@ -102,8 +110,7 @@ index adb4e182d..e2ee96798 100644
 -    TOOLCHAIN_PREPARE_FOR_VERSION_COMPARISONS([BUILD_], [OPENJDK_BUILD_], [build ])
 -    TOOLCHAIN_EXTRACT_LD_VERSION(BUILD_LD, [build linker])
 -    TOOLCHAIN_PREPARE_FOR_LD_VERSION_COMPARISONS([BUILD_], [OPENJDK_BUILD_])
-+    # xandroid
-+    if test "x$OPENJDK_BUILD_OS" != "xlinux"; then
++    if test "x$OPENJDK_TARGET_OS" != "xandroid"; then
 +      TOOLCHAIN_EXTRACT_COMPILER_VERSION(BUILD_CC, [BuildC])
 +      TOOLCHAIN_EXTRACT_COMPILER_VERSION(BUILD_CXX, [BuildC++])
 +      TOOLCHAIN_PREPARE_FOR_VERSION_COMPARISONS([BUILD_], [OPENJDK_BUILD_], [build ])
@@ -113,6 +120,7 @@ index adb4e182d..e2ee96798 100644
    else
      # If we are not cross compiling, use the normal target compilers for
      # building the build platform executables.
+
 diff --git a/make/common/JdkNativeCompilation.gmk b/make/common/JdkNativeCompilation.gmk
 index 6a963ac2c..349ff126b 100644
 --- a/make/common/JdkNativeCompilation.gmk
