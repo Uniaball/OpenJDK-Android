@@ -53,20 +53,42 @@ index 5daacdc1ced54..c669b5191c7e0 100644
    AC_SUBST(ICONV_CFLAGS)
    AC_SUBST(ICONV_LDFLAGS)
 diff --git a/make/autoconf/platform.m4 b/make/autoconf/platform.m4
-index babb24a9b..bcf1e9b41 100644
+index ac372d9..fe60f18 100644
 --- a/make/autoconf/platform.m4
 +++ b/make/autoconf/platform.m4
-@@ -202,6 +202,10 @@ AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_OS],
-       VAR_OS=linux
-       VAR_OS_TYPE=unix
-       ;;
+@@ -198,6 +198,10 @@ AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_CPU],
+ AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_OS],
+ [
+   case "$1" in
 +    *android*)
-+      VAR_OS=linux
++      VAR_OS=android
 +      VAR_OS_TYPE=unix
 +      ;;
-     *darwin*)
-       VAR_OS=macosx
+     *linux*)
+       VAR_OS=linux
        VAR_OS_TYPE=unix
+@@ -531,6 +535,9 @@ AC_DEFUN([PLATFORM_SETUP_LEGACY_VARS_HELPER],
+   # Convert openjdk platform names to hotspot names
+ 
+   HOTSPOT_$1_OS=${OPENJDK_$1_OS}
++  if test "x$OPENJDK_$1_OS" = xandroid; then
++    HOTSPOT_$1_OS=linux
++  fi
+   if test "x$OPENJDK_$1_OS" = xmacosx; then
+     HOTSPOT_$1_OS=bsd
+   fi
+@@ -621,6 +628,10 @@ AC_DEFUN([PLATFORM_SET_RELEASE_FILE_OS_VALUES],
+   if test "x$OPENJDK_TARGET_OS" = "xaix"; then
+     RELEASE_FILE_OS_NAME="AIX"
+   fi
++  if test "x$OPENJDK_TARGET_OS" = "xandroid"; then
++    RELEASE_FILE_OS_NAME="Android"
++    RELEASE_FILE_LIBC="Bionic"
++  fi
+   RELEASE_FILE_OS_ARCH=${OPENJDK_TARGET_CPU}
+   RELEASE_FILE_LIBC=${OPENJDK_TARGET_LIBC}
+ 
+
 diff --git a/make/autoconf/toolchain.m4 b/make/autoconf/toolchain.m4
 index adb4e182d..e2ee96798 100644
 --- a/make/autoconf/toolchain.m4
@@ -202,7 +224,7 @@ index f5f134d..892cc8a 100644
 -  LIBJSOUND_LINK_TYPE := C
 -  ifeq ($(call isTargetOs, macosx), true)
 -    LIBJSOUND_LINK_TYPE := C++
-+  ifneq ($(call isTargetOs, linux), true)
++  ifneq ($(call isTargetOs, android), true)
 +    ##############################################################################
 +    # Build libjsound
 +    ##############################################################################
