@@ -53,21 +53,22 @@ index 5daacdc1ced54..c669b5191c7e0 100644
    AC_SUBST(ICONV_CFLAGS)
    AC_SUBST(ICONV_LDFLAGS)
 diff --git a/make/autoconf/platform.m4 b/make/autoconf/platform.m4
-index ac372d9..fe60f18 100644
+index ac372d9..0ed7be7 100644
 --- a/make/autoconf/platform.m4
 +++ b/make/autoconf/platform.m4
-@@ -198,6 +198,10 @@ AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_CPU],
- AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_OS],
- [
-   case "$1" in
+@@ -350,6 +350,11 @@ AC_DEFUN([PLATFORM_EXTRACT_TARGET_AND_BUILD],
+   PLATFORM_EXTRACT_VARS_FROM_ABI($host_os)
+   # ... and setup our own variables. (Do this explicitly to facilitate searching)
+   OPENJDK_TARGET_OS="$VAR_OS"
++  case "$host_os" in
 +    *android*)
-+      VAR_OS=android
-+      VAR_OS_TYPE=unix
++      OPENJDK_TARGET_OS="android"
 +      ;;
-     *linux*)
-       VAR_OS=linux
-       VAR_OS_TYPE=unix
-@@ -531,6 +535,9 @@ AC_DEFUN([PLATFORM_SETUP_LEGACY_VARS_HELPER],
++  esac
+   if test "x$VAR_OS_TYPE" != x; then
+     OPENJDK_TARGET_OS_TYPE="$VAR_OS_TYPE"
+   else
+@@ -531,6 +536,9 @@ AC_DEFUN([PLATFORM_SETUP_LEGACY_VARS_HELPER],
    # Convert openjdk platform names to hotspot names
  
    HOTSPOT_$1_OS=${OPENJDK_$1_OS}
@@ -77,7 +78,7 @@ index ac372d9..fe60f18 100644
    if test "x$OPENJDK_$1_OS" = xmacosx; then
      HOTSPOT_$1_OS=bsd
    fi
-@@ -621,6 +628,10 @@ AC_DEFUN([PLATFORM_SET_RELEASE_FILE_OS_VALUES],
+@@ -621,6 +629,10 @@ AC_DEFUN([PLATFORM_SET_RELEASE_FILE_OS_VALUES],
    if test "x$OPENJDK_TARGET_OS" = "xaix"; then
      RELEASE_FILE_OS_NAME="AIX"
    fi
