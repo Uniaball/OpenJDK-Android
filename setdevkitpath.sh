@@ -8,7 +8,7 @@ export TARGET=aarch64-linux-android
 export TARGET_SHORT=arm64
 export TARGET_JDK=aarch64
 
-export JVM_PLATFORM=linux
+export JVM_PLATFORM=android
 export API=24
 
 if [[ -z "$ANDROID_NDK_HOME" ]]; then
