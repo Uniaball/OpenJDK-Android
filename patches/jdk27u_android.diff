@@ -94,48 +94,52 @@ index 5daacdc1ced54..c669b5191c7e0 100644
    AC_SUBST(ICONV_CFLAGS)
    AC_SUBST(ICONV_LDFLAGS)
 diff --git a/make/autoconf/platform.m4 b/make/autoconf/platform.m4
-index 90d5d79562643..0780540e7c55a 100644
+index ac372d9..cb15c9f 100644
 --- a/make/autoconf/platform.m4
 +++ b/make/autoconf/platform.m4
-@@ -198,6 +198,10 @@ AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_CPU],
- AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_OS],
- [
-   case "$1" in
+@@ -350,6 +350,11 @@ AC_DEFUN([PLATFORM_EXTRACT_TARGET_AND_BUILD],
+   PLATFORM_EXTRACT_VARS_FROM_ABI($host_os)
+   # ... and setup our own variables. (Do this explicitly to facilitate searching)
+   OPENJDK_TARGET_OS="$VAR_OS"
++  case "$host_os" in
 +    *android*)
-+      VAR_OS=android
-+      VAR_OS_TYPE=unix
++      OPENJDK_TARGET_OS="android"
 +      ;;
-     *linux*)
-       VAR_OS=linux
-       VAR_OS_TYPE=unix
-@@ -531,9 +535,15 @@ AC_DEFUN([PLATFORM_SETUP_LEGACY_VARS_HELPER],
++  esac
+   if test "x$VAR_OS_TYPE" != x; then
+     OPENJDK_TARGET_OS_TYPE="$VAR_OS_TYPE"
+   else
+@@ -531,6 +536,9 @@ AC_DEFUN([PLATFORM_SETUP_LEGACY_VARS_HELPER],
    # Convert openjdk platform names to hotspot names
  
    HOTSPOT_$1_OS=${OPENJDK_$1_OS}
-+
 +  if test "x$OPENJDK_$1_OS" = xandroid; then
 +    HOTSPOT_$1_OS=linux
 +  fi
-+
    if test "x$OPENJDK_$1_OS" = xmacosx; then
      HOTSPOT_$1_OS=bsd
    fi
-+
-   AC_SUBST(HOTSPOT_$1_OS)
- 
-   HOTSPOT_$1_OS_TYPE=${OPENJDK_$1_OS_TYPE}
-@@ -624,6 +634,11 @@ AC_DEFUN([PLATFORM_SET_RELEASE_FILE_OS_VALUES],
-   RELEASE_FILE_OS_ARCH=${OPENJDK_TARGET_CPU}
-   RELEASE_FILE_LIBC=${OPENJDK_TARGET_LIBC}
- 
+@@ -603,6 +611,8 @@ AC_DEFUN([PLATFORM_SETUP_LEGACY_VARS_HELPER],
+     OPENJDK_$1_OS_INCLUDE_SUBDIR="win32"
+   elif test "x$OPENJDK_TARGET_OS" = "xmacosx"; then
+     OPENJDK_$1_OS_INCLUDE_SUBDIR="darwin"
++  elif test "x$OPENJDK_TARGET_OS" = "xandroid"; then
++    OPENJDK_$1_OS_INCLUDE_SUBDIR="linux"
+   fi
+   AC_SUBST(OPENJDK_$1_OS_INCLUDE_SUBDIR)
+ ])
+@@ -621,6 +631,10 @@ AC_DEFUN([PLATFORM_SET_RELEASE_FILE_OS_VALUES],
+   if test "x$OPENJDK_TARGET_OS" = "xaix"; then
+     RELEASE_FILE_OS_NAME="AIX"
+   fi
 +  if test "x$OPENJDK_TARGET_OS" = "xandroid"; then
 +    RELEASE_FILE_OS_NAME="Android"
 +    RELEASE_FILE_LIBC="Bionic"
 +  fi
-+
-   AC_SUBST(RELEASE_FILE_OS_NAME)
-   AC_SUBST(RELEASE_FILE_OS_ARCH)
-   AC_SUBST(RELEASE_FILE_LIBC)
+   RELEASE_FILE_OS_ARCH=${OPENJDK_TARGET_CPU}
+   RELEASE_FILE_LIBC=${OPENJDK_TARGET_LIBC}
+ 
+
 diff --git a/make/autoconf/toolchain.m4 b/make/autoconf/toolchain.m4
 index aceeba1..7bfe658 100644
 --- a/make/autoconf/toolchain.m4
@@ -365,6 +369,20 @@ index 61fcb8a35..93d2ad4f4 100644
    return magic;
  }
  
+diff --git a/make/hotspot/gensrc/GensrcAdlc.gmk b/make/hotspot/gensrc/GensrcAdlc.gmk
+index 490657b..540e73c 100644
+--- a/make/hotspot/gensrc/GensrcAdlc.gmk
++++ b/make/hotspot/gensrc/GensrcAdlc.gmk
+@@ -61,6 +61,8 @@ ifeq ($(call check-jvm-feature, compiler2), true)
+   # Add file macro mappings
+   ADLC_CFLAGS += $(FILE_MACRO_CFLAGS) $(REPRODUCIBLE_CFLAGS)
+ 
++  ADLC_CFLAGS += -g0
++
+   ifeq ($(UBSAN_ENABLED), true)
+     ADLC_CFLAGS += $(UBSAN_CFLAGS)
+     ADLC_LDFLAGS += $(UBSAN_LDFLAGS)
+
 diff --git a/src/hotspot/os/linux/os_linux.cpp b/src/hotspot/os/linux/os_linux.cpp
 index 42680218d..403d8905b 100644
 --- a/src/hotspot/os/linux/os_linux.cpp
