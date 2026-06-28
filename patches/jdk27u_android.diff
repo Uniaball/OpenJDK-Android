@@ -315,6 +315,27 @@ index f5f134d..892cc8a 100644
  
  ifeq ($(call isTargetOs, macosx), true)
 
+diff --git a/make/modules/jdk.attach/Lib.gmk b/make/modules/jdk.attach/Lib.gmk
+index ba5de40..8545950 100644
+--- a/make/modules/jdk.attach/Lib.gmk
++++ b/make/modules/jdk.attach/Lib.gmk
+@@ -38,8 +38,15 @@ ifeq ($(call isTargetOs, windows), true)
+   LIBATTACH_CFLAGS := -DPSAPI_VERSION=1
+ endif
+ 
++ifeq ($(OPENJDK_TARGET_OS), android)
++  LIBATTACH_SRC := $(TOPDIR)/src/jdk.attach/linux/native/libattach
++else
++  LIBATTACH_SRC :=
++endif
++
+ $(eval $(call SetupJdkLibrary, BUILD_LIBATTACH, \
+     NAME := attach, \
++    SRC := $(LIBATTACH_SRC), \
+     OPTIMIZATION := LOW, \
+     CFLAGS := $(LIBATTACH_CFLAGS), \
+     CFLAGS_windows := -Gy, \
+
 diff --git a/src/hotspot/cpu/arm/icache_arm.cpp b/src/hotspot/cpu/arm/icache_arm.cpp
 index 61fcb8a35..93d2ad4f4 100644
 --- a/src/hotspot/cpu/arm/icache_arm.cpp
