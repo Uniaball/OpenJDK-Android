@@ -118,21 +118,39 @@ index aceeba1..d1b52e6 100644
  VALID_TOOLCHAINS_windows="microsoft"
 
 diff --git a/make/common/JdkNativeCompilation.gmk b/make/common/JdkNativeCompilation.gmk
-index 6a963ac2c..349ff126b 100644
+index 29001e09bd08a..5e3342e55accc 100644
 --- a/make/common/JdkNativeCompilation.gmk
 +++ b/make/common/JdkNativeCompilation.gmk
-@@ -41,5 +41,11 @@ FindSrcDirsForLib += \
- endif
+@@ -56,6 +56,16 @@ else ifeq ($(call isCompiler, clang), true)
+           -Wl,-rpath,\$(DOLLAR)ORIGIN$1
+     endif
+ 
++    ifeq ($(CREATING_BUILDJDK), true)
++      ifeq ($(OPENJDK_BUILD_OS), linux)
++         SetBuildExecutableOrigin = \
++            -Wl,-rpath,\$(DOLLAR)ORIGIN$1 -Wl,--disable-new-dtags
++      endif
++    else
++         SetBuildExecutableOrigin = \
++            -Wl,-rpath,\$(DOLLAR)ORIGIN$1
++    endif
++
+     ifeq ($(call isTargetOs, arm), true)
+       SetSharedLibraryOrigin = \
+           -Wl,-rpath,\$(DOLLAR)ORIGIN$1
+@@ -77,6 +87,12 @@ FindSrcDirsForComponent += \
+       $(TOPDIR)/src/$(strip $1)/$(OPENJDK_TARGET_OS_TYPE)/native/$(strip $2) \
+       $(TOPDIR)/src/$(strip $1)/share/native/$(strip $2)))
  
 +ifeq ($(OPENJDK_TARGET_OS), android)
-+  FindSrcDirsForLib += \
-+    $(call uniq, $(wildcard \
-+        $(TOPDIR)/src/$(strip $1)/linux/native/lib$(strip $2)))
++    FindSrcDirsForComponent += \
++        $(call uniq, $(wildcard \
++            $(TOPDIR)/src/$(strip $1)/linux/native/$(strip $2)))
 +endif
 +
- FindSrcDirsForComponent += \
-   $(call uniq, $(wildcard \
-       $(TOPDIR)/src/$(strip $1)/$(OPENJDK_TARGET_OS)/native/$(strip $2) \
+ # Find a library. Used for declaring dependencies on libraries in different
+ # modules.
+ # Param 1 - module name
 diff --git a/make/common/Modules.gmk b/make/common/Modules.gmk
 index 0eb0fb2dd..e0431de0b 100644
 --- a/make/common/Modules.gmk
