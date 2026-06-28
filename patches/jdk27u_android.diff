@@ -1581,9 +1581,9 @@ index d417f384a18c8..d26f81a4d5914 100644
  
    strncpy(saved_jvm_path, buf, MAXPATHLEN);
    saved_jvm_path[MAXPATHLEN - 1] = '\0';
-diff --git a/src/java.desktop/share/classes/old_module-info.java b/src/java.desktop/share/classes/module-info.java
+diff --git a/src/java.desktop/share/classes/module-info.java b/src/java.desktop/share/classes/module-info.java
 index 2c0364e..50992e0 100644
---- a/src/java.desktop/share/classes/old_module-info.java
+--- a/src/java.desktop/share/classes/module-info.java
 +++ b/src/java.desktop/share/classes/module-info.java
 @@ -57,6 +57,7 @@
   */
