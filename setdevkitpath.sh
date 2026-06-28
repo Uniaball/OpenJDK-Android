@@ -25,6 +25,9 @@ export LDFLAGS="-fuse-ld=lld"
 export CC="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang"
 export CXX="ccache $TOOLCHAIN/bin/${TARGET}${API}-clang++"
 
+export BUILD_CC="clang"
+export BUILD_CXX="clang++"
+
 export LD="$TOOLCHAIN/bin/ld.lld"
 
 export DLLTOOL="$TOOLCHAIN/bin/llvm-dlltool"

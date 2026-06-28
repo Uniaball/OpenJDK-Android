@@ -1,53 +1,17 @@
 diff --git a/make/autoconf/flags-cflags.m4 b/make/autoconf/flags-cflags.m4
-index 6bf0a18..e75ca12 100644
+index 6bf0a18..0575f5c 100644
 --- a/make/autoconf/flags-cflags.m4
 +++ b/make/autoconf/flags-cflags.m4
-@@ -440,6 +440,15 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS],
-   CFLAGS=""
-   CXXFLAGS=""
- 
-+  # --- Fix: Clear debug symbol flags for BUILD compilers to avoid -gdwarf- issues with host g++ ---
-+  TARGET_CFLAGS_DEBUG_SYMBOLS="$CFLAGS_DEBUG_SYMBOLS"
-+  TARGET_ASFLAGS_DEBUG_SYMBOLS="$ASFLAGS_DEBUG_SYMBOLS"
-+  CFLAGS_DEBUG_SYMBOLS=""
-+  ASFLAGS_DEBUG_SYMBOLS=""
-+  # Also clear DEBUG_SYMBOLS_CFLAGS_JDK which is used in helper
-+  DEBUG_SYMBOLS_CFLAGS_JDK=""
-+  # --- end of fix ---
-+
-   FLAGS_OS=$OPENJDK_BUILD_OS
-   FLAGS_OS_TYPE=$OPENJDK_BUILD_OS_TYPE
-   FLAGS_CPU=$OPENJDK_BUILD_CPU
-@@ -451,6 +460,10 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS],
- 
-   FLAGS_SETUP_CFLAGS_CPU_DEP([BUILD], [OPENJDK_BUILD_], [BUILD_])
- 
-+  # Restore target debug symbol flags
-+  CFLAGS_DEBUG_SYMBOLS="$TARGET_CFLAGS_DEBUG_SYMBOLS"
-+  ASFLAGS_DEBUG_SYMBOLS="$TARGET_ASFLAGS_DEBUG_SYMBOLS"
-+
-   CC="$CC_OLD"
-   CXX="$CXX_OLD"
-   CFLAGS="$CFLAGS_OLD"
-@@ -465,6 +478,9 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
+@@ -465,6 +465,9 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
    if test "x$OPENJDK_TARGET_OS" = xlinux; then
      CFLAGS_OS_DEF_JVM="-DLINUX -D_FILE_OFFSET_BITS=64"
      CFLAGS_OS_DEF_JDK="-D_GNU_SOURCE -D_REENTRANT -D_FILE_OFFSET_BITS=64"
 +  elif test "x$OPENJDK_TARGET_OS" = xandroid; then
 +    CFLAGS_OS_DEF_JVM="-DLINUX -D_FILE_OFFSET_BITS=64 -DANDROID"
-+    CFLAGS_OS_DEF_JDK="-DLINUX -D__USE_BSD -D_FILE_OFFSET_BITS=64 -DANDROID"
++    CFLAGS_OS_DEF_JDK="-D_GNU_SOURCE -D_REENTRANT -D_FILE_OFFSET_BITS=64 -DANDROID"
    elif test "x$OPENJDK_TARGET_OS" = xmacosx; then
      CFLAGS_OS_DEF_JVM="-D_ALLBSD_SOURCE -D_DARWIN_C_SOURCE -D_XOPEN_SOURCE"
      CFLAGS_OS_DEF_JDK="-D_ALLBSD_SOURCE -D_DARWIN_UNLIMITED_SELECT"
-@@ -564,7 +580,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
-     # works for all platforms.
-     TOOLCHAIN_CFLAGS_JVM="$TOOLCHAIN_CFLAGS_JVM -mno-omit-leaf-frame-pointer -mstack-alignment=16"
- 
--    if test "x$OPENJDK_TARGET_OS" = xlinux; then
-+    if test "x$OPENJDK_TARGET_OS" = xlinux || test "x$OPENJDK_TARGET_OS" = xandroid; then
-       if test "x$DEBUG_LEVEL" = xrelease; then
-         # Clang does not inline as much as GCC does for functions with "inline" keyword by default.
-         # This causes noticeable slowdown in pause time for G1, and possibly in other areas.
 
 diff --git a/make/autoconf/lib-freetype.m4 b/make/autoconf/lib-freetype.m4
 index 6a7109342..2d74ffc5b 100644
@@ -141,7 +105,7 @@ index ac372d9..cb15c9f 100644
  
 
 diff --git a/make/autoconf/toolchain.m4 b/make/autoconf/toolchain.m4
-index aceeba1..7bfe658 100644
+index aceeba1..d1b52e6 100644
 --- a/make/autoconf/toolchain.m4
 +++ b/make/autoconf/toolchain.m4
 @@ -39,6 +39,7 @@ VALID_TOOLCHAINS_all="gcc clang microsoft"
@@ -152,25 +116,6 @@ index aceeba1..7bfe658 100644
  VALID_TOOLCHAINS_macosx="clang"
  VALID_TOOLCHAINS_aix="clang"
  VALID_TOOLCHAINS_windows="microsoft"
-@@ -881,11 +882,13 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_BUILD_COMPILERS],
- 
-     PATH="$OLDPATH"
- 
--    TOOLCHAIN_EXTRACT_COMPILER_VERSION(BUILD_CC, [BuildC])
--    TOOLCHAIN_EXTRACT_COMPILER_VERSION(BUILD_CXX, [BuildC++])
--    TOOLCHAIN_PREPARE_FOR_VERSION_COMPARISONS([BUILD_], [OPENJDK_BUILD_], [build ])
--    TOOLCHAIN_EXTRACT_LD_VERSION(BUILD_LD, [build linker])
--    TOOLCHAIN_PREPARE_FOR_LD_VERSION_COMPARISONS([BUILD_], [OPENJDK_BUILD_])
-+    if test "x$OPENJDK_TARGET_OS" != "xandroid"; then
-+      TOOLCHAIN_EXTRACT_COMPILER_VERSION(BUILD_CC, [BuildC])
-+      TOOLCHAIN_EXTRACT_COMPILER_VERSION(BUILD_CXX, [BuildC++])
-+      TOOLCHAIN_PREPARE_FOR_VERSION_COMPARISONS([BUILD_], [OPENJDK_BUILD_], [build ])
-+      TOOLCHAIN_EXTRACT_LD_VERSION(BUILD_LD, [build linker])
-+      TOOLCHAIN_PREPARE_FOR_LD_VERSION_COMPARISONS([BUILD_], [OPENJDK_BUILD_])
-+    fi
-   else
-     # If we are not cross compiling, use the normal target compilers for
-     # building the build platform executables.
 
 diff --git a/make/common/JdkNativeCompilation.gmk b/make/common/JdkNativeCompilation.gmk
 index 6a963ac2c..349ff126b 100644
@@ -369,30 +314,6 @@ index 61fcb8a35..93d2ad4f4 100644
    return magic;
  }
  
-diff --git a/make/hotspot/gensrc/GensrcAdlc.gmk b/make/hotspot/gensrc/GensrcAdlc.gmk
-index 490657b..ce19b65 100644
---- a/make/hotspot/gensrc/GensrcAdlc.gmk
-+++ b/make/hotspot/gensrc/GensrcAdlc.gmk
-@@ -70,6 +70,9 @@ ifeq ($(call check-jvm-feature, compiler2), true)
-   ## Build adlc
-   ##############################################################################
- 
-+  _adlc_saved_CFLAGS_DEBUG_SYMBOLS := $(CFLAGS_DEBUG_SYMBOLS)
-+  CFLAGS_DEBUG_SYMBOLS :=
-+
-   $(eval $(call SetupJdkExecutable, BUILD_ADLC, \
-       NAME := adlc, \
-       TARGET_TYPE := BUILD, \
-@@ -88,6 +91,8 @@ ifeq ($(call check-jvm-feature, compiler2), true)
-       DISABLED_WARNINGS_clang := tautological-compare, \
-   ))
- 
-+  CFLAGS_DEBUG_SYMBOLS := $(_adlc_saved_CFLAGS_DEBUG_SYMBOLS)
-+
-   ADLC_TOOL := $(BUILD_ADLC_TARGET)
- 
-   ##############################################################################
-
 diff --git a/src/hotspot/os/linux/os_linux.cpp b/src/hotspot/os/linux/os_linux.cpp
 index 42680218d..403d8905b 100644
 --- a/src/hotspot/os/linux/os_linux.cpp

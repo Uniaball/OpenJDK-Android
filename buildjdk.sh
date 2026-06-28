@@ -60,7 +60,9 @@ bash ./configure \
     --with-version-pre="-ea" \
     --with-version-opt="" \
     --with-boot-jdk-jvmargs="-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:ProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:AllocatePrefetchStyle=1 -XX:+UseCriticalJavaThreadPriority -XX:+UseStringDeduplication -XX:+UseFastJNIAccessors -XX:+UseThreadPriorities" \
-    --openjdk-target="$TARGET" \
+    --build="x86_64-pc-linux-gnu" \
+    --host="$TARGET" \
+    --target="$TARGET" \
     --with-extra-cflags="$CFLAGS" \
     --with-extra-cxxflags="$CFLAGS" \
     --with-extra-ldflags="$LDFLAGS" \
@@ -93,7 +95,9 @@ bash ./configure \
     OBJCOPY="$OBJCOPY" \
     CXXFILT="$CXXFILT" \
     LD="$LD" \
-    READELF="$TOOLCHAIN/bin/llvm-readelf" || error_code=$?
+    READELF="$TOOLCHAIN/bin/llvm-readelf" \
+    BUILD_CC="$BUILD_CC" \
+    BUILD_CXX="$BUILD_CXX" || error_code=$?
 
 if [[ "$error_code" -ne 0 ]]; then
     echo "\n\nCONFIGURE ERROR $error_code , config.log:"
