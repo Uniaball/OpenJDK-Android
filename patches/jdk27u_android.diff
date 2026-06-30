@@ -1664,19 +1664,6 @@ index 2c0364e..50992e0 100644
      requires transitive java.datatransfer;
      requires transitive java.xml;
 
-diff --git a/src/java.base/share/classes/jdk/internal/util/StaticProperty.java b/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
-index 4fb3ae7a184ee..b5cc8b8d8804f 100644
---- a/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
-+++ b/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
-@@ -116,7 +116,7 @@ private StaticProperty() {}
-             USER_SCRIPT = "";
-         } else {
-             USER_SCRIPT = getProperty(props, "user.script", "");
--            USER_COUNTRY = getProperty(props, "user.country", "");
-+            USER_COUNTRY = getProperty(props, "user.country", "CN");
-             USER_VARIANT = getProperty(props, "user.variant", "");
-         }
-         USER_SCRIPT_DISPLAY = getProperty(props, "user.script.display", USER_SCRIPT);
 diff --git a/src/java.base/share/native/libjava/check_version.c b/src/java.base/share/native/libjava/check_version.c
 index 17a590fea1456..70fa6982dbe89 100644
 --- a/src/java.base/share/native/libjava/check_version.c
