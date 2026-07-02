@@ -14,10 +14,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@main
 
-    - name: set up JDK 26
+    - name: set up JDK 27
       uses: actions/setup-java@main
       with:
-        java-version: 26
+        java-version: 27-ea
         distribution: zulu
 
     - name: Install build dependencies
