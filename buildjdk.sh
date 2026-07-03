@@ -111,7 +111,7 @@ jobs=$(nproc 2>/dev/null || echo 4)
 echo "Running ${jobs} jobs to build the jdk"
 cd "$target_build_dir"
 export LD_LIBRARY_PATH="$PWD/buildjdk/jdk/lib:$LD_LIBRARY_PATH"
-make JOBS="$jobs" JLINK_OPTS="--strip-native-debug-symbols=keep" images || {
+make JOBS="$jobs" JLINK_OPTS="--disable-plugin=strip-native-debug-symbols" images || {
     echo "Build failure, exited with code $?. Trying again."
-    make JOBS="$jobs" JLINK_OPTS="--strip-native-debug-symbols=keep" images
+    make JOBS="$jobs" JLINK_OPTS="--disable-plugin=strip-native-debug-symbols" images
 }
