@@ -75,7 +75,7 @@ bash ./configure \
     --enable-linktime-gc \
     --with-cups-include="$CUPS_DIR" \
     --with-devkit="$TOOLCHAIN" \
-    --with-native-debug-symbols=external \
+    --with-native-debug-symbols=none \
     --with-debug-level="$JDK_DEBUG_LEVEL" \
     --with-fontconfig-include="$ANDROID_INCLUDE" \
     --x-includes="$ANDROID_INCLUDE/X11" \
