@@ -63,8 +63,8 @@ index 6bf0a18..8fa5c7b 100644
      CFLAGS_OS_DEF_JVM="-D_ALLBSD_SOURCE -D_DARWIN_C_SOURCE -D_XOPEN_SOURCE"
      CFLAGS_OS_DEF_JDK="-D_ALLBSD_SOURCE -D_DARWIN_UNLIMITED_SELECT"
 +  elif test "x$OPENJDK_TARGET_OS" = xandroid; then
-+    CFLAGS_OS_DEF_JVM="-DLINUX -D_ALLBSD_SOURCE -D_FILE_OFFSET_BITS=64 -DANDROID -DS_IFIFO=0010000 -DS_IFBLK=0060000 -DS_IFCHR=0020000 -DS_IFLNK=0120000 -DS_IFDIR=0040000 -DS_IFREG=0100000 -DS_IFMT=00170000 -DPOSIX_FADV_SEQUENTIAL=2 -DPOSIX_FADV_NOREUSE=5 -DPOSIX_FADV_WILLNEED=3"
-+    CFLAGS_OS_DEF_JDK="-DLINUX -D__USE_BSD -D_FILE_OFFSET_BITS=64 -DANDROID -DS_IFIFO=0010000 -DS_IFBLK=0060000 -DS_IFCHR=0020000 -DS_IFLNK=0120000 -DS_IFDIR=0040000 -DS_IFREG=0100000 -DS_IFMT=00170000 -DPOSIX_FADV_SEQUENTIAL=2 -DPOSIX_FADV_NOREUSE=5 -DPOSIX_FADV_WILLNEED=3"
++    CFLAGS_OS_DEF_JVM="-DLINUX -D_ALLBSD_SOURCE -D_FILE_OFFSET_BITS=64 -DANDROID -D__ANDROID__=1 -DS_IFIFO=0010000 -DS_IFBLK=0060000 -DS_IFCHR=0020000 -DS_IFLNK=0120000 -DS_IFDIR=0040000 -DS_IFREG=0100000 -DS_IFMT=00170000 -DPOSIX_FADV_SEQUENTIAL=2 -DPOSIX_FADV_NOREUSE=5 -DPOSIX_FADV_WILLNEED=3"
++    CFLAGS_OS_DEF_JDK="-DLINUX -D__USE_BSD -D_FILE_OFFSET_BITS=64 -DANDROID -D__ANDROID__=1 -DS_IFIFO=0010000 -DS_IFBLK=0060000 -DS_IFCHR=0020000 -DS_IFLNK=0120000 -DS_IFDIR=0040000 -DS_IFREG=0100000 -DS_IFMT=00170000 -DPOSIX_FADV_SEQUENTIAL=2 -DPOSIX_FADV_NOREUSE=5 -DPOSIX_FADV_WILLNEED=3"
    elif test "x$OPENJDK_TARGET_OS" = xaix; then
      CFLAGS_OS_DEF_JVM="-DAIX -D_LARGE_FILES"
      CFLAGS_OS_DEF_JDK="-D_LARGE_FILES"
@@ -2235,3 +2235,22 @@ index 8f8ce28be1e78..358dcc74c1956 100644
      struct elf_symbol * sym = (struct elf_symbol *)(ret->data);
      uintptr_t rslt = (uintptr_t) ((char*)base + sym->offset);
      
+diff --git a/src/hotspot/share/utilities/elfSymbolTable.cpp b/src/hotspot/share/utilities/elfSymbolTable.cpp
+index ce49ada..51eec99 100644
+--- a/src/hotspot/share/utilities/elfSymbolTable.cpp
++++ b/src/hotspot/share/utilities/elfSymbolTable.cpp
+@@ -30,6 +30,14 @@
+ #include "utilities/elfFuncDescTable.hpp"
+ #include "utilities/elfSymbolTable.hpp"
+ 
++#ifndef ELF_ST_TYPE
++#if defined(__aarch64__) || defined(__x86_64__)
++#define ELF_ST_TYPE ELF64_ST_TYPE
++#else
++#define ELF_ST_TYPE ELF32_ST_TYPE
++#endif
++#endif
++
+ ElfSymbolTable::ElfSymbolTable(FILE* const file, Elf_Shdr& shdr) :
+   _next(nullptr), _fd(file), _section(file, shdr) {
+   assert(file != nullptr, "null file handle");
