@@ -105,6 +105,8 @@ if [[ "$error_code" -ne 0 ]]; then
     exit $error_code
 fi
 
+sed -i 's/--strip-native-debug-symbols[^ ]*//g' "$target_build_dir/buildjdk-spec.gmk"
+
 jobs=$(nproc 2>/dev/null || echo 4)
 [[ "$TOO_MANY_CORES" == "1" ]] && jobs=6
 
