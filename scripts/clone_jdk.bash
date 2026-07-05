@@ -19,7 +19,7 @@ fi
 
 if [[ "${TARGET_JAVA_VERSION}" = "latest" ]] || [[ "${TARGET_JAVA_VERSION}" = "27" ]] || [[ "${TARGET_JAVA_VERSION}" = "main" ]] || [[ "${TARGET_JAVA_VERSION}" = "dev" ]]; then
     echo "Use the latest version of JDK."
-    git clone --depth 1 -b master https://github.com/openjdk/jdk openjdk
+    git clone --depth 1 -b master https://github.com/openjdk/jdk27u openjdk
     exit 0
 fi
 
