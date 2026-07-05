@@ -36,15 +36,17 @@ index d7b8f8e141b85..f831a32d0a25c 100644
  
  SLEEF_SUPPORT_DIR := $(MAKESUPPORT_OUTPUTDIR)/sleef
 diff --git a/make/autoconf/buildjdk-spec.gmk.template b/make/autoconf/buildjdk-spec.gmk.template
-index bb020842d595d..f720b0cd4df76 100644
+index 78e6c27..2d1df44 100644
 --- a/make/autoconf/buildjdk-spec.gmk.template
 +++ b/make/autoconf/buildjdk-spec.gmk.template
-@@ -108,3 +108,5 @@ override EXTRA_LDFLAGS :=
+@@ -108,4 +108,5 @@ override EXTRA_LDFLAGS :=
  # hsdis is not needed
  HSDIS_BACKEND := none
  ENABLE_HSDIS_BUNDLING := false
-+
 +JVM_BUILDJDK := true
+ DEFAULT_PRINT_ASSEMBLY_OPTIONS :=
+\ No newline at end of file
+
 diff --git a/make/autoconf/flags-cflags.m4 b/make/autoconf/flags-cflags.m4
 index 6bf0a18..8fa5c7b 100644
 --- a/make/autoconf/flags-cflags.m4
@@ -473,10 +475,10 @@ index 90ea8a985e3d9..68c5e235574f2 100644
      # minimal JVM
      JVM_STRIPFLAGS := --strip-unneeded
 diff --git a/make/hotspot/lib/JvmFlags.gmk b/make/hotspot/lib/JvmFlags.gmk
-index 27a96cc486535..9e4080cfb070f 100644
+index 339e0b2..17a3624 100644
 --- a/make/hotspot/lib/JvmFlags.gmk
 +++ b/make/hotspot/lib/JvmFlags.gmk
-@@ -57,6 +57,13 @@ JVM_CFLAGS_INCLUDES += \
+@@ -57,6 +57,14 @@ JVM_CFLAGS_INCLUDES += \
      -I$(TOPDIR)/src/java.base/share/native/libjimage \
      #
  
@@ -487,9 +489,11 @@ index 27a96cc486535..9e4080cfb070f 100644
 +    -I$(TOPDIR)/src/hotspot/os_cpu/linux_$(HOTSPOT_TARGET_CPU_ARCH) \
 +    #
 +endif
- 
++
  # INCLUDE_SUFFIX_* is only meant for including the proper
  # platform files. Don't use it to guard code. Use the value of
+ # HOTSPOT_TARGET_CPU_DEFINE etc. instead.
+
 diff --git a/make/hotspot/lib/JvmOverrideFiles.gmk b/make/hotspot/lib/JvmOverrideFiles.gmk
 index 3eedb64a597a3..4c8f8c373f507 100644
 --- a/make/hotspot/lib/JvmOverrideFiles.gmk
