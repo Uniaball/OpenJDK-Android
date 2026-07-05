@@ -2261,9 +2261,9 @@ index ce49ada..51eec99 100644
    _next(nullptr), _fd(file), _section(file, shdr) {
    assert(file != nullptr, "null file handle");
 
-diff --git a/src/java.base/unix/native/libjava/old_Console_md.c b/src/java.base/unix/native/libjava/Console_md.c
+diff --git a/src/java.base/unix/native/libjava/Console_md.c b/src/java.base/unix/native/libjava/Console_md.c
 index 0a15939..aae98e3 100644
---- a/src/java.base/unix/native/libjava/old_Console_md.c
+--- a/src/java.base/unix/native/libjava/Console_md.c
 +++ b/src/java.base/unix/native/libjava/Console_md.c
 @@ -28,6 +28,7 @@
  #include "jvm.h"
