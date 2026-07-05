@@ -46,7 +46,7 @@ index bb020842d595d..f720b0cd4df76 100644
 +
 +JVM_BUILDJDK := true
 diff --git a/make/autoconf/flags-cflags.m4 b/make/autoconf/flags-cflags.m4
-index 423654cd50ad8..37a8fff55b2c3 100644
+index 6bf0a18..8fa5c7b 100644
 --- a/make/autoconf/flags-cflags.m4
 +++ b/make/autoconf/flags-cflags.m4
 @@ -83,7 +83,7 @@ AC_DEFUN([FLAGS_SETUP_DEBUG_SYMBOLS],
@@ -58,7 +58,7 @@ index 423654cd50ad8..37a8fff55b2c3 100644
      if test "x$ALLOW_ABSOLUTE_PATHS_IN_OUTPUT" = "xfalse"; then
        # Check if compiler supports -fdebug-prefix-map. If so, use that to make
        # the debug symbol paths resolve to paths relative to the workspace root.
-@@ -468,6 +468,10 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
+@@ -468,6 +468,9 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
    elif test "x$OPENJDK_TARGET_OS" = xmacosx; then
      CFLAGS_OS_DEF_JVM="-D_ALLBSD_SOURCE -D_DARWIN_C_SOURCE -D_XOPEN_SOURCE"
      CFLAGS_OS_DEF_JDK="-D_ALLBSD_SOURCE -D_DARWIN_UNLIMITED_SELECT"
@@ -68,7 +68,7 @@ index 423654cd50ad8..37a8fff55b2c3 100644
    elif test "x$OPENJDK_TARGET_OS" = xaix; then
      CFLAGS_OS_DEF_JVM="-DAIX -D_LARGE_FILES"
      CFLAGS_OS_DEF_JDK="-D_LARGE_FILES"
-@@ -564,7 +568,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
+@@ -564,7 +567,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
      # works for all platforms.
      TOOLCHAIN_CFLAGS_JVM="$TOOLCHAIN_CFLAGS_JVM -mno-omit-leaf-frame-pointer -mstack-alignment=16"
  
@@ -77,7 +77,7 @@ index 423654cd50ad8..37a8fff55b2c3 100644
        if test "x$DEBUG_LEVEL" = xrelease; then
          # Clang does not inline as much as GCC does for functions with "inline" keyword by default.
          # This causes noticeable slowdown in pause time for G1, and possibly in other areas.
-@@ -630,7 +634,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
+@@ -630,7 +633,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
    # Set some additional per-OS defines.
  
    # Additional macosx handling
@@ -86,7 +86,7 @@ index 423654cd50ad8..37a8fff55b2c3 100644
      OS_CFLAGS="-DMAC_OS_X_VERSION_MIN_REQUIRED=$MACOSX_VERSION_MIN_NODOTS \
          -mmacosx-version-min=$MACOSX_VERSION_MIN"
  
-@@ -778,6 +782,13 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_CPU_DEP],
+@@ -778,6 +781,13 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_CPU_DEP],
        $1_CFLAGS_CPU="-mcpu=pwr8"
      fi
  
@@ -100,6 +100,7 @@ index 423654cd50ad8..37a8fff55b2c3 100644
    elif test "x$TOOLCHAIN_TYPE" = xmicrosoft; then
      if test "x$FLAGS_CPU" = xx86; then
        $1_CFLAGS_CPU_JVM="-arch:IA32"
+
 diff --git a/make/autoconf/flags-ldflags.m4 b/make/autoconf/flags-ldflags.m4
 index ff10828731ecc..98fecf8f960fd 100644
 --- a/make/autoconf/flags-ldflags.m4
@@ -1616,10 +1617,10 @@ index ad24432f1889e..ac04d06a9ff12 100644
                          "libgssapi.so",
                          "libgssapi_krb5.so",
 diff --git a/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c b/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
-index c500360f39db6..cf544ae22915a 100644
+index c7ad677..6f6e241 100644
 --- a/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
 +++ b/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
-@@ -45,6 +45,33 @@
+@@ -45,6 +45,32 @@
  #define HWCAP_PACA (1 << 30)
  #endif
  
@@ -1628,6 +1629,7 @@ index c500360f39db6..cf544ae22915a 100644
 +#include <ctype.h>
 +#include <sys/user.h>
 +#endif
++
 +#if defined(__ANDROID__) && !defined(PRSTATUS_T_DEFINED)
 +#define PRSTATUS_T_DEFINED 1
 +typedef struct prstatus {
@@ -1646,14 +1648,12 @@ index c500360f39db6..cf544ae22915a 100644
 +    elf_gregset_t pr_reg;
 +    int pr_fpvalid;
 +} prstatus_t;
-+
 +#endif // __ANDROID__ && !PRSTATUS_T_DEFINED
-+
 +
  // This file has the libproc implementation to read core files.
  // For live processes, refer to ps_proc.c. Portions of this is adapted
  // /modelled after Solaris libproc.so (in particular Pcore.c)
-@@ -196,8 +223,8 @@ static ps_prochandle_ops core_ops = {
+@@ -196,8 +222,8 @@ static ps_prochandle_ops core_ops = {
  static bool core_handle_prstatus(struct ps_prochandle* ph, const char* buf, size_t nbytes) {
     // we have to read prstatus_t from buf
     // assert(nbytes == sizeof(prstaus_t), "size mismatch on prstatus_t");
@@ -1663,7 +1663,7 @@ index c500360f39db6..cf544ae22915a 100644
     print_debug("got integer regset for lwp %d\n", prstat->pr_pid);
     if((newthr = add_thread_info(ph, prstat->pr_pid)) == NULL) {
        print_error("failed to add thread info\n");
-@@ -824,6 +851,266 @@ static bool read_shared_lib_info(struct ps_prochandle* ph) {
+@@ -824,6 +850,121 @@ static bool read_shared_lib_info(struct ps_prochandle* ph) {
    return true;
  }
  
@@ -1785,7 +1785,7 @@ index c500360f39db6..cf544ae22915a 100644
  // the one and only one exposed stuff from this file
  JNIEXPORT struct ps_prochandle* JNICALL
  Pgrab_core(const char* exec_file, const char* core_file) {
-@@ -853,6 +1140,14 @@ Pgrab_core(const char* exec_file, const char* core_file) {
+@@ -853,6 +994,14 @@ Pgrab_core(const char* exec_file, const char* core_file) {
      print_error("can't open core file: %s\n", strerror(errno));
      goto err;
    }
@@ -1800,6 +1800,7 @@ index c500360f39db6..cf544ae22915a 100644
  
    // read core file ELF header
    if (read_elf_header(ph->core->core_fd, &core_ehdr) != true || core_ehdr.e_type != ET_CORE) {
+
 diff --git a/src/jdk.hotspot.agent/linux/native/libsaproc/symtab.c b/src/jdk.hotspot.agent/linux/native/libsaproc/symtab.c
 index 8f8ce28be1e78..358dcc74c1956 100644
 --- a/src/jdk.hotspot.agent/linux/native/libsaproc/symtab.c
@@ -1865,3 +1866,4 @@ index 8f8ce28be1e78..358dcc74c1956 100644
    if (ret) {
      struct elf_symbol * sym = (struct elf_symbol *)(ret->data);
      uintptr_t rslt = (uintptr_t) ((char*)base + sym->offset);
+     
