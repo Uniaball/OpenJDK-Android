@@ -35,20 +35,6 @@ index d7b8f8e141b85..f831a32d0a25c 100644
  endif
  
  SLEEF_SUPPORT_DIR := $(MAKESUPPORT_OUTPUTDIR)/sleef
-diff --git a/make/autoconf/buildjdk-spec.gmk.template b/make/autoconf/buildjdk-spec.gmk.template
-index 78e6c27..50f6b1d 100644
---- a/make/autoconf/buildjdk-spec.gmk.template
-+++ b/make/autoconf/buildjdk-spec.gmk.template
-@@ -108,4 +108,5 @@ override EXTRA_LDFLAGS :=
- # hsdis is not needed
- HSDIS_BACKEND := none
- ENABLE_HSDIS_BUNDLING := false
--DEFAULT_PRINT_ASSEMBLY_OPTIONS :=
-\ No newline at end of file
-+DEFAULT_PRINT_ASSEMBLY_OPTIONS :=
-+JVM_BUILDJDK := true
-\ No newline at end of file
-
 diff --git a/make/autoconf/flags-cflags.m4 b/make/autoconf/flags-cflags.m4
 index 6bf0a18..8fa5c7b 100644
 --- a/make/autoconf/flags-cflags.m4
@@ -2262,14 +2248,29 @@ index ce49ada..51eec99 100644
    assert(file != nullptr, "null file handle");
 
 diff --git a/src/java.base/unix/native/libjava/Console_md.c b/src/java.base/unix/native/libjava/Console_md.c
-index 0a15939..aae98e3 100644
+index 0a15939..c5699f2 100644
 --- a/src/java.base/unix/native/libjava/Console_md.c
 +++ b/src/java.base/unix/native/libjava/Console_md.c
-@@ -28,6 +28,7 @@
- #include "jvm.h"
- #include "java_io_Console.h"
+@@ -23,6 +23,8 @@
+  * questions.
+  */
  
++#define _GNU_SOURCE
 +#include <stdio.h>
- #include <stdlib.h>
- #include <unistd.h>
- 
+ #include "jni.h"
+ #include "jni_util.h"
+ #include "jvm.h"
+
+diff --git a/make/autoconf/buildjdk-spec.gmk.template b/make/autoconf/buildjdk-spec.gmk.template
+index 78e6c27..50f6b1d 100644
+--- a/make/autoconf/buildjdk-spec.gmk.template
++++ b/make/autoconf/buildjdk-spec.gmk.template
+@@ -108,4 +108,5 @@ override EXTRA_LDFLAGS :=
+ # hsdis is not needed
+ HSDIS_BACKEND := none
+ ENABLE_HSDIS_BUNDLING := false
+-DEFAULT_PRINT_ASSEMBLY_OPTIONS :=
+\ No newline at end of file
++DEFAULT_PRINT_ASSEMBLY_OPTIONS :=
++JVM_BUILDJDK := true
+\ No newline at end of file
