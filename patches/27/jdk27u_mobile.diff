@@ -1,8 +1,8 @@
-diff --git a/make/CompileJavaModules.gmk b/make/CompileJavaModules.gmk
-index 4fe5f07..5638780 100644
---- a/make/CompileJavaModules.gmk
+diff --git a/make/old_CompileJavaModules.gmk b/make/CompileJavaModules.gmk
+index 4fe5f07..fd4ef9a 100644
+--- a/make/old_CompileJavaModules.gmk
 +++ b/make/CompileJavaModules.gmk
-@@ -47,6 +47,14 @@ endif
+@@ -47,6 +47,15 @@ endif
  #
  MODULE_SRC_DIRS := $(call FindModuleSrcDirs, $(MODULE))
  
@@ -11,12 +11,23 @@ index 4fe5f07..5638780 100644
 +    MODULE_SRC_DIRS += \
 +        $(wildcard $(TOPDIR)/src/$(MODULE)/linux/classes) \
 +        $(wildcard $(TOPDIR)/src/$(MODULE)/unix/classes)
++    JAVA_BASE_PATCH := --patch-module=java.base=$(TOPDIR)/src/java.base/linux/classes
 +  endif
 +endif
 +
  # The JDK_USER_DEFINED_FILTER is a poor man's incremental build: by specifying
  # JDK_FILTER at the make command line, only a subset of the JDK java files will
  # be recompiled. If multiple paths are separated by comma, convert that into a
+@@ -121,7 +130,8 @@ $(eval $(call SetupJavaCompilation, $(MODULE), \
+         $(JAVAC_FLAGS) \
+         --module-source-path $(MODULESOURCEPATH) \
+         --module-path $(MODULEPATH) \
+-        --system none, \
++        --system none \
++        $(JAVA_BASE_PATCH), \
+ ))
+ 
+ TARGETS += $($(MODULE))
 
 diff --git a/make/StaticLibs.gmk b/make/StaticLibs.gmk
 index ca74590938dad..06f8f8172116a 100644
