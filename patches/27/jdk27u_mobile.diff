@@ -1,3 +1,23 @@
+diff --git a/make/CompileJavaModules.gmk b/make/CompileJavaModules.gmk
+index 4fe5f07..5638780 100644
+--- a/make/CompileJavaModules.gmk
++++ b/make/CompileJavaModules.gmk
+@@ -47,6 +47,14 @@ endif
+ #
+ MODULE_SRC_DIRS := $(call FindModuleSrcDirs, $(MODULE))
+ 
++ifeq ($(MODULE), java.base)
++  ifeq ($(call isTargetOs, android), true)
++    MODULE_SRC_DIRS += \
++        $(wildcard $(TOPDIR)/src/$(MODULE)/linux/classes) \
++        $(wildcard $(TOPDIR)/src/$(MODULE)/unix/classes)
++  endif
++endif
++
+ # The JDK_USER_DEFINED_FILTER is a poor man's incremental build: by specifying
+ # JDK_FILTER at the make command line, only a subset of the JDK java files will
+ # be recompiled. If multiple paths are separated by comma, convert that into a
+
 diff --git a/make/StaticLibs.gmk b/make/StaticLibs.gmk
 index ca74590938dad..06f8f8172116a 100644
 --- a/make/StaticLibs.gmk
@@ -364,22 +384,6 @@ index c882deb10a7bf..67f07ef312ac9 100644
      # If we are not cross compiling, use the normal target compilers for
      # building the build platform executables.
      BUILD_CC="$CC"
-diff --git a/make/common/Modules.gmk b/make/common/Modules.gmk
-index 253d9ee..7a1d2df 100644
---- a/make/common/Modules.gmk
-+++ b/make/common/Modules.gmk
-@@ -78,6 +78,10 @@ ifneq ($(OPENJDK_TARGET_OS), $(OPENJDK_TARGET_OS_TYPE))
- endif
- SRC_SUBDIRS += share/classes
- 
-+ifeq ($(OPENJDK_TARGET_OS), android)
-+  SRC_SUBDIRS += linux/classes
-+endif
-+
- SPEC_SUBDIRS += share/specs
- 
- MAN_SUBDIRS += share/man $(TARGET_OS)/man
-
 diff --git a/make/common/JdkNativeCompilation.gmk b/make/common/JdkNativeCompilation.gmk
 index 29001e09bd08a..5e3342e55accc 100644
 --- a/make/common/JdkNativeCompilation.gmk
@@ -1469,44 +1473,19 @@ index 639cf00515fa0..44fe613fe5fbf 100644
  #include <poll.h>
  #include <sys/socket.h>
 diff --git a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-index 4b5cfabebfbc5..0bf39a3845c8d 100644
+index 68f9c8d..ddb71e3 100644
 --- a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
 +++ b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-@@ -375,11 +375,24 @@ Java_sun_nio_fs_UnixNativeDispatcher_init(JNIEnv* env, jclass this)
- #ifdef _DARWIN_FEATURE_64_BIT_INODE
-     capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
- #endif
--#if defined(__linux__)
-+#if defined(__linux__) && !defined(__ANDROID__)
-     my_statx_func = (statx_func*) dlsym(RTLD_DEFAULT, "statx");
-     if (my_statx_func != NULL) {
-         capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
-     }
-+#elif defined(__ANDROID__)
-+    typedef int (*statx_func_t)(int, const char*, int, unsigned int, struct statx*);
-+    statx_func_t statx_func = (statx_func_t) dlsym(RTLD_DEFAULT, "statx");
-+    if (statx_func != NULL) {
-+        struct statx buf;
-+        int fd = open("/proc/self/exe", O_RDONLY);
-+        if (fd != -1) {
-+            if (statx_func(fd, "", AT_EMPTY_PATH, STATX_BASIC_STATS, &buf) == 0) {
-+                capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
-+            }
-+            close(fd);
-+        }
-+    }
- #endif
- 
-     /* supports extended attributes */
-@@ -628,7 +641,7 @@ static void copy_stat_attributes(JNIEnv* env, struct stat* buf, jobject attrs) {
+@@ -628,7 +628,7 @@ static void copy_stat_attributes(JNIEnv* env, struct stat* buf, jobject attrs) {
      // rely on default value of 0 for st_birthtime_nsec field on Darwin
  #endif
  
 -#ifndef MACOSX
-+#if !defined(MACOSX) && !defined(__ANDROID__)
++#if defined(__ANDROID__) || !defined(MACOSX)
      (*env)->SetLongField(env, attrs, attrs_st_atime_nsec, (jlong)buf->st_atim.tv_nsec);
      (*env)->SetLongField(env, attrs, attrs_st_mtime_nsec, (jlong)buf->st_mtim.tv_nsec);
      (*env)->SetLongField(env, attrs, attrs_st_ctime_nsec, (jlong)buf->st_ctim.tv_nsec);
+
 diff --git a/src/java.desktop/share/classes/sun/awt/OSInfo.java b/src/java.desktop/share/classes/sun/awt/OSInfo.java
 index decd3e35402eb..a372951e3147a 100644
 --- a/src/java.desktop/share/classes/sun/awt/OSInfo.java
