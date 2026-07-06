@@ -517,23 +517,21 @@ index 3eedb64a597a3..4c8f8c373f507 100644
      # significantly reduce the GC pause time on 32 bit Linux/Unix platforms by
      # compiling without the PIC flag (-fPIC on linux).
 diff --git a/make/modules/java.base/Java.gmk b/make/modules/java.base/Java.gmk
-index 74fbcb7..9867fc1 100644
+index 74fbcb7..7b6e557 100644
 --- a/make/modules/java.base/Java.gmk
 +++ b/make/modules/java.base/Java.gmk
 @@ -55,4 +55,11 @@ ifeq ($(call isTargetOs, windows), true)
        #
  endif
  
--################################################################################
-\ No newline at end of file
-+################################################################################
-+
 +ifeq ($(call isTargetOs, android), true)
 +  java.base_platform_src_dirs += \
 +      $(TOPDIR)/src/java.base/linux/classes \
 +      $(TOPDIR)/src/java.base/unix/classes \
 +      #
 +endif
++
+ ################################################################################
 \ No newline at end of file
 
 diff --git a/make/modules/java.base/Launcher.gmk b/make/modules/java.base/Launcher.gmk
