@@ -516,6 +516,26 @@ index 3eedb64a597a3..4c8f8c373f507 100644
      # Performance measurements show that by compiling GC related code, we could
      # significantly reduce the GC pause time on 32 bit Linux/Unix platforms by
      # compiling without the PIC flag (-fPIC on linux).
+diff --git a/make/modules/java.base/Java.gmk b/make/modules/java.base/Java.gmk
+index 74fbcb7..9867fc1 100644
+--- a/make/modules/java.base/Java.gmk
++++ b/make/modules/java.base/Java.gmk
+@@ -55,4 +55,11 @@ ifeq ($(call isTargetOs, windows), true)
+       #
+ endif
+ 
+-################################################################################
+\ No newline at end of file
++################################################################################
++
++ifeq ($(call isTargetOs, android), true)
++  java.base_platform_src_dirs += \
++      $(TOPDIR)/src/java.base/linux/classes \
++      $(TOPDIR)/src/java.base/unix/classes \
++      #
++endif
+\ No newline at end of file
+
 diff --git a/make/modules/java.base/Launcher.gmk b/make/modules/java.base/Launcher.gmk
 index bfae0925c0766..8d5ac049785a0 100644
 --- a/make/modules/java.base/Launcher.gmk
@@ -981,6 +1001,19 @@ index 2b58e7378820c..c7815862ad2bf 100644
  
 +#endif
  #endif // SHARE_CPPSTDLIB_CSTDLIB_HPP
+diff --git a/src/hotspot/share/utilities/elfSymbolTable.cpp b/src/hotspot/share/utilities/elfSymbolTable.cpp
+index ce49ada..bbfd49f 100644
+--- a/src/hotspot/share/utilities/elfSymbolTable.cpp
++++ b/src/hotspot/share/utilities/elfSymbolTable.cpp
+@@ -25,6 +25,7 @@
+ 
+ #if !defined(_WINDOWS) && !defined(__APPLE__)
+ 
++#include <elf.h>
+ #include "memory/allocation.inline.hpp"
+ #include "utilities/checkedCast.hpp"
+ #include "utilities/elfFuncDescTable.hpp"
+
 diff --git a/src/hotspot/share/utilities/forbiddenFunctions.hpp b/src/hotspot/share/utilities/forbiddenFunctions.hpp
 index 9b3c65b0656ae..02a64ec6de6fe 100644
 --- a/src/hotspot/share/utilities/forbiddenFunctions.hpp
