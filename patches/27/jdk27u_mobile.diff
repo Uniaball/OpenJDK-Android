@@ -1,6 +1,6 @@
-diff --git a/make/old_CompileJavaModules.gmk b/make/CompileJavaModules.gmk
+diff --git a/make/CompileJavaModules.gmk b/make/CompileJavaModules.gmk
 index 4fe5f07..fd4ef9a 100644
---- a/make/old_CompileJavaModules.gmk
+--- a/make/CompileJavaModules.gmk
 +++ b/make/CompileJavaModules.gmk
 @@ -47,6 +47,15 @@ endif
  #
