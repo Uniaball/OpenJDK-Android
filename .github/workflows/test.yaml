@@ -1,18 +1,21 @@
-name: Build OpenJDK27 for Android
+name: Build JDK for Android
 
 on:
   push:
+    branches: [ master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 env:
   ANDROID_API: 26
   TARGET_ARCH: arm64
   TARGET_OS: android
-  TARGET_JAVA_VERSION: 27
+  TARGET_JAVA_VERSION: 28
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
@@ -33,8 +36,9 @@ jobs:
         uses: actions/setup-java@main
         with:
           distribution: 'zulu'
-          java-version: '27-ea'
+          java-version: '26'
 
+      # 第4步: 提权并运行依赖安装脚本
       - name: Install dependencies
         run: |
           chmod +x ./scripts/install_deps.bash
@@ -45,23 +49,25 @@ jobs:
           sudo chmod +x ./scripts/build_jdk.bash
           bash ./scripts/build_jdk.bash
 
+
+      # 第6步: 上传构建产物 (openjdk-build 文件夹)
       - name: Upload JRE build artifacts
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
           name: openjdk-jre-build
-          path: openjdk/build/aarch64-linux-android/images/jre27*.tar.xz
+          path: openjdk/build/**/images/jre28*.tar.xz
           if-no-files-found: error
 
       - name: Upload JDK build artifacts
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
           name: openjdk-jdk-build
-          path: openjdk/build/aarch64-linux-android/images/jdk27*.tar.xz
+          path: openjdk/build/**/images/jdk28*.tar.xz
           if-no-files-found: error
 
       - name: Upload debuginfo build artifacts
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v4
         with:
           name: openjdk-symbols-build
-          path: openjdk/build/aarch64-linux-android/images/symbols27*.tar.xz
+          path: openjdk/build/**/images/symbols28*.tar.xz
           if-no-files-found: error

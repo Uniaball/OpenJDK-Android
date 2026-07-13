@@ -2,9 +2,10 @@
 set -e
 source ./scripts/utils.bash
 
+
 cp -R /usr/include/X11 ${DEPS_INCLUDE_DIR}
 cp -R /usr/include/fontconfig ${DEPS_INCLUDE_DIR}
-cp ${CURRENT_DIR}/devkit_info/devkit.info.arm64 ${NDK_TOOLCHAIN}
+cp ${CURRENT_DIR}/devkit_info/devkit.info.${TARGET_ARCH} ${NDK_TOOLCHAIN}
 
 Set_C_CPPFLAGS -DLE_STANDALONE
 
@@ -24,27 +25,28 @@ bash ./configure \
       --with-version-pre="-ea" \
       --with-vendor-name="OpenJDK" \
       --with-version-opt="${GITHUB_ACTOR}-${GITHUB_SHA}" \
-      --with-vendor-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
-      --with-vendor-vm-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
-      --with-vendor-version-string="OpenJDK-built-with-aaaapai-OpenJDK-Builder" \
-      --with-vendor-url="https://github.com/openjdk/" \
+	  --with-vendor-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
+	  --with-vendor-vm-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
+	  --with-vendor-version-string="OpenJDK-built-with-aaaapai-OpenJDK-Builder" \
+	  --with-vendor-url="https://github.com/openjdk/" \
       --with-conf-name="${TARGET}" \
-      --build="x86_64-pc-linux-gnu" \
-      --host="${TARGET}" \
-      --target="${TARGET}" \
+	  --build="x86_64-pc-linux-gnu" \
+	  --host="${TARGET}" \
+	  --target="${TARGET}" \
       --with-boot-jdk-jvmargs="-Xms3G -Xmx3G -XX:+UseThreadPriorities -XX:MetaspaceSize=256M -XX:+UseG1GC -XX:+DisableExplicitGC -XX:+TieredCompilation" \
       --with-jvm-variants="server" \
-      --with-jvm-features="" \
+	  --with-jvm-features="" \
       --with-external-symbols-in-bundles=none \
       --with-native-debug-symbols-level=1 \
       --disable-precompiled-headers \
       --enable-option-checking=fatal \
       --enable-linktime-gc \
       --disable-warnings-as-errors \
-      --enable-headless-only=yes \
+	  --enable-headless-only=yes \
       --with-debug-level=${JDK_DEBUG_LEVEL} \
       --with-fontconfig-include="${DEPS_INCLUDE_DIR}" \
       --with-devkit="${NDK_TOOLCHAIN}" \
+      --with-debug-level=${JDK_DEBUG_LEVEL} \
       --with-cups-include="${CUPS_DIR}" \
       --with-extra-cflags="${CFLAGS}" \
       --with-extra-cxxflags="${CFLAGS}" \
@@ -58,18 +60,18 @@ bash ./configure \
       STRIP="${STRIP}" \
       NM="${NM}" \
       AR="${AR}" \
-      RANLIB="${RANLIB}" \
-      BUILD_OBJDUMP="${OBJDUMP}" \
-      BUILD_OBJCOPY="${OBJCOPY}" \
+	  RANLIB="${RANLIB}" \
+	  BUILD_OBJDUMP="${OBJDUMP}" \
+	  BUILD_OBJCOPY="${OBJCOPY}" \
       BUILD_NM="${NM}" \
       BUILD_AR="${AR}" \
-      BUILD_CC="${CURRENT_DIR}/wrapper/clang/buildcc-wrapped-clang" \
-      BUILD_CXX="${CURRENT_DIR}/wrapper/clang/buildcxx-wrapped-clang++" \
+	  BUILD_CC="${CURRENT_DIR}/wrapper/clang/buildcc-wrapped-clang" \
+	  BUILD_CXX="${CURRENT_DIR}/wrapper/clang/buildcxx-wrapped-clang++" \
       CXXFILT="llvm-cxxfilt" \
-      --disable-full-docs \
-      --enable-javac-server \
-      --with-memory-size=3072 \
-      --with-jobs=6 || \
+	  --disable-full-docs \
+	  --enable-javac-server \
+	  --with-memory-size=3072 \
+	  --with-jobs=6 || \
 error_code=$?
 
 if [[ "$error_code" -ne 0 ]]; then
@@ -86,6 +88,7 @@ if [[ "${error_code}" -ne 0 ]]; then
   echo "Build failure, exited with code ${error_code}."
   make JOBS=6 images
 fi
+
 
 cd ${CURRENT_DIR}
 cd_to_script_dir

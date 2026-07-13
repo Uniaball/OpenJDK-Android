@@ -1,4 +1,3 @@
-**本分支来源于 [aaaapai的构建脚本](https://github.com/aaaapai/OpenJDK-Builder)**
 注意: 此存储库未完成，目前可能有很多bug
 
 # OpenJDK-Builder

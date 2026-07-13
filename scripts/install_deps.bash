@@ -3,10 +3,13 @@ chmod +x ./scripts/utils.bash
 source ./scripts/utils.bash
 cd ${CURRENT_DIR}
 
+
+
 echo "Installing host build tools..."
 sudo apt-get update
 sudo apt-get install --only-upgrade apt
 sudo apt-get install --fix-missing libffi-dev libfontconfig-dev libxrandr-dev libxtst-dev libcups2-dev libasound2-dev gettext autopoint libtool gperf
+
 
 echo "Building Freetype..."
 git clone --depth 1 -b "$([ -n "${FREETYPE_VERSION}" ] && echo "VER-$(echo ${FREETYPE_VERSION} | tr '.' '-')" || echo "master")" https://github.com/lwjgl-ci/freetype freetype
@@ -37,9 +40,12 @@ CFLAGS="-O3 -fno-rtti -mllvm -polly" CXXFLAGS="-O3 -fno-rtti -mllvm -polly" make
 make install
 find ${CURRENT_DIR}/freetype -name "libfreetype.so*" -exec cp -v {} ${DEPS_LIB_DIR}/ \;
 
+
 echo "Cloning cups..."
+
 cd ${CURRENT_DIR}
 git clone --depth 1 -b "$([ -n "${CUPS_VERSION}" ] && echo "v${CUPS_VERSION}" || echo "master")" https://github.com/OpenPrinting/cups cups
+
 
 echo "Building libiconv..."
 git clone --depth 1 https://github.com/aaaapai/libiconv libiconv
@@ -75,7 +81,7 @@ iconv_cmake_build () {
   
   cmake ${CURRENT_DIR}/libiconv \
     -DANDROID_PLATFORM=${ANDROID_API} \
-    -DANDROID_ABI=${NDK_ARCH} \
+    -DANDROID_ABI=${NDK_ARCH_MAP[${TARGET_ARCH}]} \
     -DANDROID_TOOLCHAIN_NAME=${TARGET} \
     -DANDROID_TOOLCHAIN=clang \
     -DCMAKE_ANDROID_STL_TYPE=c++_static \
