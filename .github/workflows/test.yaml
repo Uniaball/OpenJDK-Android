@@ -1,10 +1,6 @@
 name: Build JDK for Android
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
 
 env:
@@ -36,7 +32,7 @@ jobs:
         uses: actions/setup-java@main
         with:
           distribution: 'zulu'
-          java-version: '26'
+          java-version: '27-ea'
 
       # 第4步: 提权并运行依赖安装脚本
       - name: Install dependencies
@@ -52,21 +48,21 @@ jobs:
 
       # 第6步: 上传构建产物 (openjdk-build 文件夹)
       - name: Upload JRE build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@main
         with:
           name: openjdk-jre-build
           path: openjdk/build/**/images/jre28*.tar.xz
           if-no-files-found: error
 
       - name: Upload JDK build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@main
         with:
           name: openjdk-jdk-build
           path: openjdk/build/**/images/jdk28*.tar.xz
           if-no-files-found: error
 
       - name: Upload debuginfo build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@main
         with:
           name: openjdk-symbols-build
           path: openjdk/build/**/images/symbols28*.tar.xz
