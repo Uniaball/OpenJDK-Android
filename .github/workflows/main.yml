@@ -11,7 +11,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -34,7 +34,6 @@ jobs:
           distribution: 'zulu'
           java-version: '27-ea'
 
-      # 第4步: 提权并运行依赖安装脚本
       - name: Install dependencies
         run: |
           chmod +x ./scripts/install_deps.bash
@@ -45,8 +44,6 @@ jobs:
           sudo chmod +x ./scripts/build_jdk.bash
           bash ./scripts/build_jdk.bash
 
-
-      # 第6步: 上传构建产物 (openjdk-build 文件夹)
       - name: Upload JRE build artifacts
         uses: actions/upload-artifact@main
         with:
