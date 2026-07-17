@@ -1,4 +1,5 @@
 name: Build OpenJDK28 for Android
+run-name: Build OpenJDK28 for Android
 
 on:
   workflow_dispatch:
