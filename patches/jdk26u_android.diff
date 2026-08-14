@@ -1,18 +1,35 @@
 diff --git a/make/autoconf/flags-cflags.m4 b/make/autoconf/flags-cflags.m4
-index 1fdd0143a..705b3e1f9 100644
+index b334e731f..d91c8423d 100644
 --- a/make/autoconf/flags-cflags.m4
 +++ b/make/autoconf/flags-cflags.m4
-@@ -409,4 +409,4 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
+@@ -432,7 +432,7 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_HELPER],
+   #### OS DEFINES, these should be independent on toolchain
    if test "x$OPENJDK_TARGET_OS" = xlinux; then
      CFLAGS_OS_DEF_JVM="-DLINUX -D_FILE_OFFSET_BITS=64"
 -    CFLAGS_OS_DEF_JDK="-D_GNU_SOURCE -D_REENTRANT -D_FILE_OFFSET_BITS=64"
 +    CFLAGS_OS_DEF_JDK="-D_GNU_SOURCE -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D__USE_BSD"
    elif test "x$OPENJDK_TARGET_OS" = xmacosx; then
+     CFLAGS_OS_DEF_JVM="-D_ALLBSD_SOURCE -D_DARWIN_C_SOURCE -D_XOPEN_SOURCE"
+     CFLAGS_OS_DEF_JDK="-D_ALLBSD_SOURCE -D_DARWIN_UNLIMITED_SELECT"
+@@ -759,6 +759,13 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_CPU_DEP],
+       $1_CFLAGS_CPU="-mcpu=pwr8"
+     fi
+ 
++    if test "x$FLAGS_CPU" = xarm; then
++      # For whatever reason arm build with clang fails with:
++      #   ad_arm.cpp:19849:4: error: "ARM must be defined"
++      # Fix by defining arm here as well.
++      $1_CFLAGS_CPU_JVM="-DARM"
++    fi
++
+   elif test "x$TOOLCHAIN_TYPE" = xmicrosoft; then
+     if test "x$FLAGS_CPU" = xx86; then
+       $1_CFLAGS_CPU_JVM="-arch:IA32"
 diff --git a/make/autoconf/lib-freetype.m4 b/make/autoconf/lib-freetype.m4
-index 6a7109342..2d74ffc5b 100644
+index 8d524c8c8..5399a8bd7 100644
 --- a/make/autoconf/lib-freetype.m4
 +++ b/make/autoconf/lib-freetype.m4
-@@ -103,7 +103,8 @@ AC_DEFUN_ONCE([LIB_SETUP_FREETYPE],
+@@ -105,7 +105,8 @@ AC_DEFUN_ONCE([LIB_SETUP_FREETYPE],
    FREETYPE_TO_USE=bundled
    if test "x$OPENJDK_TARGET_OS" != "xwindows" && \
        test "x$OPENJDK_TARGET_OS" != "xmacosx" && \
@@ -22,21 +39,23 @@ index 6a7109342..2d74ffc5b 100644
      FREETYPE_TO_USE=system
    fi
    if test "x$with_freetype" != "x" ; then
+diff --git a/make/autoconf/lib-std.m4 b/make/autoconf/lib-std.m4
+index e470cdbe6..9ce21d282 100644
+--- a/make/autoconf/lib-std.m4
++++ b/make/autoconf/lib-std.m4
+@@ -47,7 +47,7 @@ AC_DEFUN_ONCE([LIB_SETUP_STD_LIBS],
+   if test "x$OPENJDK_TARGET_OS" = xlinux; then
+     # Test if stdc++ can be linked statically.
+     AC_MSG_CHECKING([if static link of stdc++ is possible])
+-    STATIC_STDCXX_FLAGS="-static-libstdc++ -static-libgcc"
++    STATIC_STDCXX_FLAGS="-static-libstdc++"
+     AC_LANG_PUSH(C++)
+     OLD_LIBS="$LIBS"
+     LIBS="$STATIC_STDCXX_FLAGS"
 diff --git a/make/autoconf/libraries.m4 b/make/autoconf/libraries.m4
-index a50ce5731..eb9545984 100644
+index 5daacdc1c..3cf930b4a 100644
 --- a/make/autoconf/libraries.m4
 +++ b/make/autoconf/libraries.m4
-@@ -42,8 +42,8 @@ m4_include([lib-tests.m4])
- AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
- [
-   # Check if X11 is needed
--  if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx; then
--    # No X11 support on windows or macosx
-+  if test "x$OPENJDK_TARGET_OS" = xwindows || test "x$OPENJDK_TARGET_OS" = xmacosx || test "x$OPENJDK_TARGET_OS" = xandroid; then
-+    # No X11 support on windows, macosx or android
-     NEEDS_LIB_X11=false
-   else
-     # All other instances need X11, even if building headless only, libawt still
 @@ -52,8 +52,8 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
    fi
  
@@ -48,8 +67,22 @@ index a50ce5731..eb9545984 100644
      NEEDS_LIB_FONTCONFIG=false
    else
      # All other instances need fontconfig, even if building headless only,
+@@ -74,12 +74,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
+     NEEDS_LIB_FREETYPE=true
+   fi
+ 
+-  # Check if alsa is needed
+-  if test "x$OPENJDK_TARGET_OS" = xlinux; then
+-    NEEDS_LIB_ALSA=true
+-  else
+-    NEEDS_LIB_ALSA=false
+-  fi
++  NEEDS_LIB_ALSA=false
+ 
+   # Check if ffi is needed
+   if HOTSPOT_CHECK_JVM_VARIANT(zero) || test "x$ENABLE_FALLBACK_LINKER" = "xtrue"; then
 diff --git a/make/autoconf/platform.m4 b/make/autoconf/platform.m4
-index babb24a9b..bcf1e9b41 100644
+index 90d5d7956..3a1c80670 100644
 --- a/make/autoconf/platform.m4
 +++ b/make/autoconf/platform.m4
 @@ -202,6 +202,10 @@ AC_DEFUN([PLATFORM_EXTRACT_VARS_FROM_OS],
@@ -64,10 +97,34 @@ index babb24a9b..bcf1e9b41 100644
        VAR_OS=macosx
        VAR_OS_TYPE=unix
 diff --git a/make/autoconf/toolchain.m4 b/make/autoconf/toolchain.m4
-index adb4e182d..e2ee96798 100644
+index c882deb10..9b30dab51 100644
 --- a/make/autoconf/toolchain.m4
 +++ b/make/autoconf/toolchain.m4
-@@ -903,11 +903,14 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_BUILD_COMPILERS],
+@@ -35,10 +35,10 @@
+ m4_include([toolchain_microsoft.m4])
+ 
+ # All valid toolchains, regardless of platform (used by help.m4)
+-VALID_TOOLCHAINS_all="gcc clang microsoft"
++VALID_TOOLCHAINS_all="clang gcc microsoft"
+ 
+ # These toolchains are valid on different platforms
+-VALID_TOOLCHAINS_linux="gcc clang"
++VALID_TOOLCHAINS_linux="clang gcc"
+ VALID_TOOLCHAINS_macosx="clang"
+ VALID_TOOLCHAINS_aix="clang"
+ VALID_TOOLCHAINS_windows="microsoft"
+@@ -863,8 +863,8 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_BUILD_COMPILERS],
+         UTIL_REQUIRE_PROGS(BUILD_CC, clang)
+         UTIL_REQUIRE_PROGS(BUILD_CXX, clang++)
+       else
+-        UTIL_REQUIRE_PROGS(BUILD_CC, cc gcc)
+-        UTIL_REQUIRE_PROGS(BUILD_CXX, CC g++)
++        UTIL_REQUIRE_PROGS(BUILD_CC, clang gcc)
++        UTIL_REQUIRE_PROGS(BUILD_CXX, clang++ g++)
+       fi
+       UTIL_LOOKUP_PROGS(BUILD_NM, nm gcc-nm)
+       UTIL_LOOKUP_PROGS(BUILD_AR, ar gcc-ar lib)
+@@ -879,11 +879,14 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_BUILD_COMPILERS],
  
      PATH="$OLDPATH"
  
@@ -88,10 +145,11 @@ index adb4e182d..e2ee96798 100644
      # If we are not cross compiling, use the normal target compilers for
      # building the build platform executables.
 diff --git a/make/common/JdkNativeCompilation.gmk b/make/common/JdkNativeCompilation.gmk
-index 6a963ac2c..349ff126b 100644
+index 29001e09b..9d6b16ec4 100644
 --- a/make/common/JdkNativeCompilation.gmk
 +++ b/make/common/JdkNativeCompilation.gmk
-@@ -41,5 +41,11 @@ FindSrcDirsForLib += \
+@@ -71,6 +71,12 @@ else
+   $(error Unknown toolchain)
  endif
  
 +ifeq ($(OPENJDK_TARGET_OS), android)
@@ -104,10 +162,10 @@ index 6a963ac2c..349ff126b 100644
    $(call uniq, $(wildcard \
        $(TOPDIR)/src/$(strip $1)/$(OPENJDK_TARGET_OS)/native/$(strip $2) \
 diff --git a/make/common/Modules.gmk b/make/common/Modules.gmk
-index 0eb0fb2dd..e0431de0b 100644
+index 288050467..a147c5e32 100644
 --- a/make/common/Modules.gmk
 +++ b/make/common/Modules.gmk
-@@ -83,6 +83,10 @@ GENERATED_SRC_DIRS += \
+@@ -78,6 +78,10 @@ GENERATED_SRC_DIRS += \
  TOP_SRC_DIRS += \
      $(TOPDIR)/src \
      #
@@ -119,10 +177,10 @@ index 0eb0fb2dd..e0431de0b 100644
  SRC_SUBDIRS += $(OPENJDK_TARGET_OS)/classes
  ifneq ($(OPENJDK_TARGET_OS), $(OPENJDK_TARGET_OS_TYPE))
 diff --git a/make/common/Utils.gmk b/make/common/Utils.gmk
-index 00e73f7dd..70accf224 100644
+index b4bb949d3..164ab2202 100644
 --- a/make/common/Utils.gmk
 +++ b/make/common/Utils.gmk
-@@ -346,6 +346,12 @@ check-jvm-variant = \
+@@ -193,6 +193,12 @@ MakeDir = \
  isTargetOs = \
    $(strip $(if $(filter $(OPENJDK_TARGET_OS), $1), true, false))
  
@@ -135,47 +193,118 @@ index 00e73f7dd..70accf224 100644
  isTargetOsType = \
    $(strip $(if $(filter $(OPENJDK_TARGET_OS_TYPE), $1), true, false))
  
+diff --git a/make/data/hotspot-symbols/version-script-clang.txt b/make/data/hotspot-symbols/version-script-clang.txt
+index 351d64fdd..08ab416cd 100644
+--- a/make/data/hotspot-symbols/version-script-clang.txt
++++ b/make/data/hotspot-symbols/version-script-clang.txt
+@@ -3,6 +3,5 @@ SUNWprivate_1.1 {
+     *;
+ 
+   local:
+-    _fini;
+-    _init;
++    *;
+ };
+diff --git a/make/hotspot/lib/CompileJvm.gmk b/make/hotspot/lib/CompileJvm.gmk
+index 39a549b7d..060a2f222 100644
+--- a/make/hotspot/lib/CompileJvm.gmk
++++ b/make/hotspot/lib/CompileJvm.gmk
+@@ -170,7 +170,7 @@ endif
+ ifeq ($(call isTargetOs, linux), true)
+   HOTSPOT_VERSION_SCRIPT := $(TOPDIR)/make/data/hotspot-symbols/version-script-$(TOOLCHAIN_TYPE).txt
+ 
+-  JVM_LDFLAGS += -Wl,-version-script=$(HOTSPOT_VERSION_SCRIPT)
++  JVM_LDFLAGS += -Wl,-version-script=$(HOTSPOT_VERSION_SCRIPT) -Wl,--no-undefined-version -Wl,--no-undefined
+ endif
+ 
+ ################################################################################
+diff --git a/make/hotspot/lib/JvmFlags.gmk b/make/hotspot/lib/JvmFlags.gmk
+index 57b632ee5..55a202cab 100644
+--- a/make/hotspot/lib/JvmFlags.gmk
++++ b/make/hotspot/lib/JvmFlags.gmk
+@@ -52,6 +52,12 @@ JVM_CFLAGS_INCLUDES += \
+     -I$(TOPDIR)/src/java.base/share/native/libjimage \
+     #
+ 
++ifeq ($(call isTargetOs, android ios), true)
++  JVM_CFLAGS_INCLUDES += \
++    -I$(TOPDIR)/src/hotspot/os/linux \
++    #
++endif
++
+ # INCLUDE_SUFFIX_* is only meant for including the proper
+ # platform files. Don't use it to guard code. Use the value of
+ # HOTSPOT_TARGET_CPU_DEFINE etc. instead.
+diff --git a/make/hotspot/lib/JvmOverrideFiles.gmk b/make/hotspot/lib/JvmOverrideFiles.gmk
+index 3eedb64a5..d773c5f94 100644
+--- a/make/hotspot/lib/JvmOverrideFiles.gmk
++++ b/make/hotspot/lib/JvmOverrideFiles.gmk
+@@ -63,7 +63,8 @@ ifeq ($(call isTargetOs, linux), true)
+       $(OPT_SPEED_SRC) \
+       #
+ 
+-  ifeq ($(call isTargetCpu, x86), true)
++  #ifeq ($(call isTargetCpu, x86), true)
++  ifeq (false, true)
+     # Performance measurements show that by compiling GC related code, we could
+     # significantly reduce the GC pause time on 32 bit Linux/Unix platforms by
+     # compiling without the PIC flag (-fPIC on linux).
 diff --git a/make/modules/java.base/lib/CoreLibraries.gmk b/make/modules/java.base/lib/CoreLibraries.gmk
-index 186eff3d6..ca76357b0 100644
+index 316103be4..7a37e7aa7 100644
 --- a/make/modules/java.base/lib/CoreLibraries.gmk
 +++ b/make/modules/java.base/lib/CoreLibraries.gmk
-@@ -117,3 +117,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJAVA, \
- TARGETS += $(BUILD_LIBJAVA)
+@@ -125,6 +125,9 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJIMAGE, \
+ 
+ TARGETS += $(BUILD_LIBJIMAGE)
  
 +ifeq ($(OPENJDK_TARGET_OS), linux)
 +  $(BUILD_LIBJAVA): $(BUILD_LIBTINYICONV)
 +endif
  ################################################################################
+ ## Build libjli
+ ################################################################################
 diff --git a/make/modules/java.desktop/Lib.gmk b/make/modules/java.desktop/Lib.gmk
-index be1ac3f1f..4dd31c4b1 100644
+index 830e0553c..4f37c5a79 100644
 --- a/make/modules/java.desktop/Lib.gmk
 +++ b/make/modules/java.desktop/Lib.gmk
-@@ -76,4 +76,4 @@ ifeq ($(call isTargetOs, aix), false)
+@@ -79,7 +79,7 @@ ifeq ($(call isTargetOs, aix), false)
+       LIBS_windows := advapi32.lib dsound.lib ole32.lib user32.lib winmm.lib, \
    ))
  
 -  TARGETS += $(BUILD_LIBJSOUND)
 +  # TARGETS += $(BUILD_LIBJSOUND)
  endif
+ 
+ ifeq ($(call isTargetOs, macosx), true)
 diff --git a/make/modules/java.desktop/lib/ClientLibraries.gmk b/make/modules/java.desktop/lib/ClientLibraries.gmk
-index 96576bb8d..13dd8e3e5 100644
+index c26f9a272..68e1a9ee4 100644
 --- a/make/modules/java.desktop/lib/ClientLibraries.gmk
 +++ b/make/modules/java.desktop/lib/ClientLibraries.gmk
-@@ -409,3 +409,3 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBFONTMANAGER, \
-     JDK_LIBS_macosx := libawt_lwawt, \
--    JDK_LIBS_unix := java.base:libjvm, \
-+    JDK_LIBS_unix := java.base:libjvm libawt_headless, \
-     LIBS := $(LIBFONTMANAGER_LIBS), \
-@@ -777,4 +777,4 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
+@@ -277,7 +277,7 @@ ifeq ($(ENABLE_HEADLESS_ONLY), false)
+       STATIC_LIB_EXCLUDE_OBJS := $(LIBSPLASHSCREEN_STATIC_LIB_EXCLUDE_OBJS), \
    ))
  
 -  TARGETS += $(BUILD_LIBSPLASHSCREEN)
 +  # TARGETS += $(BUILD_LIBSPLASHSCREEN)
  endif
+ 
+ ################################################################################
+@@ -411,7 +411,7 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBFONTMANAGER, \
+     LDFLAGS_aix := -Wl$(COMMA)-berok, \
+     JDK_LIBS := libawt java.base:libjava $(LIBFONTMANAGER_JDK_LIBS), \
+     JDK_LIBS_macosx := libawt_lwawt, \
+-    JDK_LIBS_unix := java.base:libjvm, \
++    JDK_LIBS_unix := java.base:libjvm libawt_headless, \
+     LIBS := $(LIBFONTMANAGER_LIBS), \
+     LIBS_unix := $(LIBM), \
+     LIBS_macosx := \
 diff --git a/make/modules/java.instrument/Lib.gmk b/make/modules/java.instrument/Lib.gmk
-index ae985b315..c93425263 100644
+index 4181cdf81..3ea13550e 100644
 --- a/make/modules/java.instrument/Lib.gmk
 +++ b/make/modules/java.instrument/Lib.gmk
-@@ -36,6 +36,8 @@ endif
+@@ -35,10 +35,12 @@ include LibCommon.gmk
+ $(eval $(call SetupJdkLibrary, BUILD_LIBINSTRUMENT, \
+     NAME := instrument, \
      OPTIMIZATION := LOW, \
 +    EXTRA_SRC := java.base:libtinyiconv, \
      CFLAGS := $(ICONV_CFLAGS), \
@@ -184,11 +313,14 @@ index ae985b315..c93425263 100644
      CFLAGS_release := -DNO_JPLIS_LOGGING, \
 +    CXXFLAGS := $(CXXFLAGS_JDKLIB), \
      LDFLAGS := $(ICONV_LDFLAGS), \
+     JDK_LIBS := java.base:libjava java.base:libjli java.base:libjvm, \
+     LIBS := $(ICONV_LIBS), \
 diff --git a/make/modules/jdk.hotspot.agent/Lib.gmk b/make/modules/jdk.hotspot.agent/Lib.gmk
-index 478d199e5..9477a96c9 100644
+index ed8de631d..858ad08d7 100644
 --- a/make/modules/jdk.hotspot.agent/Lib.gmk
 +++ b/make/modules/jdk.hotspot.agent/Lib.gmk
-@@ -76,5 +76,5 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBSA, \
+@@ -80,6 +80,6 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBSAPROC, \
+     LIBS_windows := dbgeng.lib, \
  ))
  
 -TARGETS += $(BUILD_LIBSAPROC)
@@ -196,19 +328,23 @@ index 478d199e5..9477a96c9 100644
  
  ################################################################################
 diff --git a/make/modules/jdk.jdwp.agent/Lib.gmk b/make/modules/jdk.jdwp.agent/Lib.gmk
-index b5ea40803..f92adb8d3 100644
+index 6ae053d4b..876c5efa1 100644
 --- a/make/modules/jdk.jdwp.agent/Lib.gmk
 +++ b/make/modules/jdk.jdwp.agent/Lib.gmk
-@@ -52,2 +52,4 @@ $(eval $(call SetupJdkLibrary, BUILD_LIBJDWP, \
+@@ -53,6 +53,8 @@ TARGETS += $(BUILD_LIBDT_SOCKET)
+ $(eval $(call SetupJdkLibrary, BUILD_LIBJDWP, \
+     NAME := jdwp, \
      OPTIMIZATION := LOW, \
 +    CXXFLAGS := $(CXXFLAGS_JDKLIB), \
 +    EXTRA_SRC := java.base:libtinyiconv, \
      CFLAGS := -DJDWP_LOGGING $(ICONV_CFLAGS), \
+     DISABLED_WARNINGS_gcc_eventFilter.c := unused-variable, \
+     DISABLED_WARNINGS_gcc_SDE.c := unused-function, \
 diff --git a/src/hotspot/cpu/arm/icache_arm.cpp b/src/hotspot/cpu/arm/icache_arm.cpp
-index 61fcb8a35..93d2ad4f4 100644
+index 53e982475..fc8fc1cbf 100644
 --- a/src/hotspot/cpu/arm/icache_arm.cpp
 +++ b/src/hotspot/cpu/arm/icache_arm.cpp
-@@ -31,7 +31,7 @@
+@@ -30,7 +30,7 @@
  
  
  static int icache_flush(address addr, int lines, int magic) {
@@ -218,10 +354,23 @@ index 61fcb8a35..93d2ad4f4 100644
  }
  
 diff --git a/src/hotspot/os/linux/os_linux.cpp b/src/hotspot/os/linux/os_linux.cpp
-index 42680218d..403d8905b 100644
+index 880dbeccf..9398c6fe1 100644
 --- a/src/hotspot/os/linux/os_linux.cpp
 +++ b/src/hotspot/os/linux/os_linux.cpp
-@@ -214,6 +214,8 @@ static int clock_tics_per_sec = 100;
+@@ -134,10 +134,10 @@
+ 
+ #define MAX_PATH    (2 * K)
+ 
+-#ifdef MUSL_LIBC
++#if defined(MUSL_LIBC) || (defined(__ANDROID__) && __ANDROID_API__ < 24)
+ // dlvsym is not a part of POSIX
+ // and musl libc doesn't implement it.
+-static void *dlvsym(void *handle,
++void *dlvsym(void *handle,
+                     const char *symbol,
+                     const char *version) {
+    // load the latest version of symbol
+@@ -209,6 +209,8 @@ static malloc_info_func_t g_malloc_info = nullptr;
  // avoid this
  static bool suppress_primordial_thread_resolution = false;
  
@@ -229,13 +378,17 @@ index 42680218d..403d8905b 100644
 +
  // utility functions
  
- julong os::Linux::available_memory_in_container() {
-@@ -348,2 +350,4 @@ bool os::Linux::get_tick_information(CPUPerfTicks* pticks, int which_logical_cpu
-     #define SYS_gettid 143
+ bool os::available_memory(physical_memory_size_type& value) {
+@@ -341,6 +343,8 @@ physical_memory_size_type os::physical_memory() {
+ // Users requiring accurate RSS values should be aware of this limitation.
+ size_t os::rss() {
+   size_t size = 0;
 +   #elif defined(__arm64__) || defined(__aarch64__)
 +     #define SYS_gettid 178
-   #else
-@@ -535,6 +539,7 @@ extern "C" void breakpoint() {
+   os::Linux::accurate_meminfo_t accurate_info;
+   if (os::Linux::query_accurate_process_memory_info(&accurate_info) && accurate_info.rss != -1) {
+     size = accurate_info.rss * K;
+@@ -657,6 +661,7 @@ void os::init_system_properties_values() {
  // detecting pthread library
  
  void os::Linux::libpthread_init() {
@@ -243,7 +396,7 @@ index 42680218d..403d8905b 100644
    // Save glibc and pthread version strings.
  #if !defined(_CS_GNU_LIBC_VERSION) || \
      !defined(_CS_GNU_LIBPTHREAD_VERSION)
-@@ -559,6 +564,9 @@ void os::Linux::libpthread_init() {
+@@ -681,6 +686,9 @@ void os::Linux::libpthread_init() {
    confstr(_CS_GNU_LIBPTHREAD_VERSION, str, n);
    os::Linux::set_libpthread_version(str);
  #endif
@@ -253,7 +406,7 @@ index 42680218d..403d8905b 100644
  }
  
  /////////////////////////////////////////////////////////////////////////////
-@@ -1348,7 +1356,13 @@ int os::current_process_id() {
+@@ -1483,7 +1491,13 @@ int os::current_process_id() {
  
  // This must be hard coded because it's the system's temporary
  // directory not the java application's temp directory, ala java.io.tmpdir.
@@ -268,7 +421,7 @@ index 42680218d..403d8905b 100644
  
  // check if addr is inside libjvm.so
  bool os::address_is_in_vm(address addr) {
-@@ -1420,6 +1434,30 @@ bool os::dll_address_to_library_name(address addr, char* buf,
+@@ -1558,6 +1572,30 @@ bool os::dll_address_to_library_name(address addr, char* buf,
    return false;
  }
  
@@ -299,7 +452,25 @@ index 42680218d..403d8905b 100644
  // Remember the stack's state. The Linux dynamic linker will change
  // the stack to 'executable' at most once, so we must safepoint only once.
  bool os::Linux::_stack_is_executable = false;
-@@ -2855,7 +2912,8 @@ void os::Linux::sched_getcpu_init() {
+@@ -1957,6 +1995,7 @@ void * os::Linux::dll_load_in_vmthread(const char *filename, char *ebuf,
+ }
+ 
+ const char* os::Linux::dll_path(void* lib) {
++#ifdef RTLD_DI_LINKMAP
+   struct link_map *lmap;
+   const char* l_path = nullptr;
+   assert(lib != nullptr, "dll_path parameter must not be null");
+@@ -1966,6 +2005,9 @@ const char* os::Linux::dll_path(void* lib) {
+     l_path = lmap->l_name;
+   }
+   return l_path;
++#else
++  return NULL;
++#endif
+ }
+ 
+ static unsigned count_newlines(const char* s) {
+@@ -3102,7 +3144,8 @@ void os::Linux::sched_getcpu_init() {
    }
  
    if (sched_getcpu() == -1) {
@@ -309,7 +480,7 @@ index 42680218d..403d8905b 100644
    }
  }
  
-@@ -5101,7 +5178,46 @@ bool os::is_thread_cpu_time_supported() {
+@@ -5058,7 +5101,46 @@ bool os::is_thread_cpu_time_supported() {
  // Linux doesn't yet have a (official) notion of processor sets,
  // so just return the system wide load average.
  int os::loadavg(double loadavg[], int nelem) {
@@ -357,11 +528,367 @@ index 42680218d..403d8905b 100644
  }
  
  // Get the default path to the core file
+diff --git a/src/hotspot/os/linux/os_perf_linux.cpp b/src/hotspot/os/linux/os_perf_linux.cpp
+index 570819452..7c93d8b20 100644
+--- a/src/hotspot/os/linux/os_perf_linux.cpp
++++ b/src/hotspot/os/linux/os_perf_linux.cpp
+@@ -35,7 +35,18 @@
+ #include <dlfcn.h>
+ #include <errno.h>
+ #include <fcntl.h>
++#ifndef __ANDROID__
+ #include <ifaddrs.h>
++#else
++#include <sys/cdefs.h>
++#include <netinet/in.h>
++#include <sys/socket.h>
++#include <linux/if_packet.h>
++#include <linux/netlink.h>
++#include <linux/rtnetlink.h>
++#include <net/if.h>
++#include <stdint.h>
++#endif
+ #include <limits.h>
+ #include <pthread.h>
+ #include <stdarg.h>
+@@ -47,6 +58,298 @@
+ #include <sys/types.h>
+ #include <unistd.h>
+ 
++#ifdef __ANDROID__
++/*
++ * Copyright (C) 2015 The Android Open Source Project
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ *  * Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ *  * Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in
++ *    the documentation and/or other materials provided with the
++ *    distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
++ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
++ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
++ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
++ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
++ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
++ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
++ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
++ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
++ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++__BEGIN_DECLS
++
++/**
++ * Returned by getifaddrs() and freed by freeifaddrs().
++ */
++struct ifaddrs {
++  /** Pointer to the next element in the linked list. */
++  struct ifaddrs* ifa_next;
++
++  /** Interface name. */
++  char* ifa_name;
++
++  /** Interface flags (like `SIOCGIFFLAGS`). */
++  unsigned int ifa_flags;
++
++  /** Interface address. */
++  struct sockaddr* ifa_addr;
++
++  /** Interface netmask. */
++  struct sockaddr* ifa_netmask;
++
++  union {
++    /** Interface broadcast address (if IFF_BROADCAST is set). */
++    struct sockaddr* ifu_broadaddr;
++
++    /** Interface destination address (if IFF_POINTOPOINT is set). */
++    struct sockaddr* ifu_dstaddr;
++  } ifa_ifu;
++
++  /** Unused. */
++  void* ifa_data;
++};
++
++/** Synonym for `ifa_ifu.ifu_broadaddr` in `struct ifaddrs`. */
++#define ifa_broadaddr ifa_ifu.ifu_broadaddr
++
++/** Synonym for `ifa_ifu.ifu_dstaddr` in `struct ifaddrs`. */
++#define ifa_dstaddr ifa_ifu.ifu_dstaddr
++
++int getifaddrs(struct ifaddrs** __list_ptr); // __INTRODUCED_IN(24);
++
++/**
++ * [freeifaddrs(3)](http://man7.org/linux/man-pages/man3/freeifaddrs.3.html) frees a linked list
++ * of `struct ifaddrs` returned by getifaddrs().
++ *
++ * Available since API level 24.
++ */
++void freeifaddrs(struct ifaddrs* __ptr); // __INTRODUCED_IN(24);
++
++__END_DECLS
++
++#define nullptr 0
++
++// The public ifaddrs struct is full of pointers. Rather than track several
++// different allocations, we use a maximally-sized structure with the public
++// part at offset 0, and pointers into its hidden tail.
++struct ifaddrs_storage {
++  // Must come first, so that `ifaddrs_storage` is-a `ifaddrs`.
++  ifaddrs ifa;
++  // The interface index, so we can match RTM_NEWADDR messages with
++  // earlier RTM_NEWLINK messages (to copy the interface flags).
++  int interface_index;
++  // Storage for the pointers in `ifa`.
++  sockaddr_storage addr;
++  sockaddr_storage netmask;
++  sockaddr_storage ifa_ifu;
++  char name[IFNAMSIZ + 1];
++  // Netlink gives us the address family in the header, and the
++  // sockaddr_in or sockaddr_in6 bytes as the payload. We need to
++  // stitch the two bits together into the sockaddr that's part of
++  // our portable interface.
++  void SetAddress(int family, const void* data, size_t byteCount) {
++      addr.ss_family = family;
++      memcpy(SockaddrBytes(family, &addr), data, byteCount);
++      ifa.ifa_addr = reinterpret_cast<sockaddr*>(&addr);
++  }
++  void SetBroadcastAddress(int family, const void* data, size_t byteCount) {
++      ifa_ifu.ss_family = family;
++      memcpy(SockaddrBytes(family, &ifa_ifu), data, byteCount);
++      ifa.ifa_dstaddr = reinterpret_cast<sockaddr*>(&ifa_ifu);
++  }
++  // Netlink gives us the prefix length as a bit count. We need to turn
++  // that into a BSD-compatible netmask represented by a sockaddr*.
++  void SetNetmask(int family, size_t prefix_length) {
++      // ...and work out the netmask from the prefix length.
++      netmask.ss_family = family;
++      uint8_t* dst = SockaddrBytes(family, &netmask);
++      memset(dst, 0xff, prefix_length / 8);
++      if ((prefix_length % 8) != 0) {
++        dst[prefix_length/8] = (0xff << (8 - (prefix_length % 8)));
++      }
++      ifa.ifa_netmask = reinterpret_cast<sockaddr*>(&netmask);
++  }
++  void SetPacketAttributes(int ifindex, unsigned short hatype, unsigned char halen) {
++    sockaddr_ll* sll = reinterpret_cast<sockaddr_ll*>(&addr);
++    sll->sll_ifindex = ifindex;
++    sll->sll_hatype = hatype;
++    sll->sll_halen = halen;
++  }
++ private:
++  // Returns a pointer to the first byte in the address data (which is
++  // stored in network byte order).
++  uint8_t* SockaddrBytes(int family, sockaddr_storage* ss) {
++    if (family == AF_INET) {
++      sockaddr_in* ss4 = reinterpret_cast<sockaddr_in*>(ss);
++      return reinterpret_cast<uint8_t*>(&ss4->sin_addr);
++    } else if (family == AF_INET6) {
++      sockaddr_in6* ss6 = reinterpret_cast<sockaddr_in6*>(ss);
++      return reinterpret_cast<uint8_t*>(&ss6->sin6_addr);
++    } else if (family == AF_PACKET) {
++      sockaddr_ll* sll = reinterpret_cast<sockaddr_ll*>(ss);
++      return reinterpret_cast<uint8_t*>(&sll->sll_addr);
++    }
++    return nullptr;
++  }
++};
++ifaddrs_storage* new_ifaddrs_storage(ifaddrs** list) {
++  ifaddrs_storage *storage = nullptr;
++  memset(storage, 0, sizeof(*storage));
++  // push_front onto `list`.
++  storage->ifa.ifa_next = *list;
++  *list = reinterpret_cast<ifaddrs*>(storage);
++  return storage;
++}
++#if !defined(__clang__)
++// GCC gets confused by NLMSG_DATA and doesn't realize that the old-style
++// cast is from a system header and should be ignored.
++#pragma GCC diagnostic ignored "-Wold-style-cast"
++#endif
++static void __handle_netlink_response(ifaddrs** out, nlmsghdr* hdr) {
++  if (hdr->nlmsg_type == RTM_NEWLINK) {
++    ifinfomsg* ifi = reinterpret_cast<ifinfomsg*>(NLMSG_DATA(hdr));
++    // Create a new ifaddr entry, and set the interface index and flags.
++    ifaddrs_storage* new_addr = new_ifaddrs_storage(out);
++    new_addr->interface_index = ifi->ifi_index;
++    new_addr->ifa.ifa_flags = ifi->ifi_flags;
++    // Go through the various bits of information and find the name.
++    rtattr* rta = IFLA_RTA(ifi);
++    size_t rta_len = IFLA_PAYLOAD(hdr);
++    while (RTA_OK(rta, rta_len)) {
++      if (rta->rta_type == IFLA_ADDRESS) {
++          if (RTA_PAYLOAD(rta) < sizeof(new_addr->addr)) {
++            new_addr->SetAddress(AF_PACKET, RTA_DATA(rta), RTA_PAYLOAD(rta));
++            new_addr->SetPacketAttributes(ifi->ifi_index, ifi->ifi_type, RTA_PAYLOAD(rta));
++          }
++      } else if (rta->rta_type == IFLA_BROADCAST) {
++          if (RTA_PAYLOAD(rta) < sizeof(new_addr->ifa_ifu)) {
++            new_addr->SetBroadcastAddress(AF_PACKET, RTA_DATA(rta), RTA_PAYLOAD(rta));
++            new_addr->SetPacketAttributes(ifi->ifi_index, ifi->ifi_type, RTA_PAYLOAD(rta));
++          }
++      } else if (rta->rta_type == IFLA_IFNAME) {
++          if (RTA_PAYLOAD(rta) < sizeof(new_addr->name)) {
++            memcpy(new_addr->name, RTA_DATA(rta), RTA_PAYLOAD(rta));
++            new_addr->ifa.ifa_name = new_addr->name;
++          }
++      }
++      rta = RTA_NEXT(rta, rta_len);
++    }
++  } else if (hdr->nlmsg_type == RTM_NEWADDR) {
++    ifaddrmsg* msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(hdr));
++    // We should already know about this from an RTM_NEWLINK message.
++    const ifaddrs_storage* addr = reinterpret_cast<const ifaddrs_storage*>(*out);
++    while (addr != nullptr && addr->interface_index != static_cast<int>(msg->ifa_index)) {
++      addr = reinterpret_cast<const ifaddrs_storage*>(addr->ifa.ifa_next);
++    }
++    // If this is an unknown interface, ignore whatever we're being told about it.
++    if (addr == nullptr) return;
++    // Create a new ifaddr entry and copy what we already know.
++    ifaddrs_storage* new_addr = new_ifaddrs_storage(out);
++    // We can just copy the name rather than look for IFA_LABEL.
++    strcpy(new_addr->name, addr->name);
++    new_addr->ifa.ifa_name = new_addr->name;
++    new_addr->ifa.ifa_flags = addr->ifa.ifa_flags;
++    new_addr->interface_index = addr->interface_index;
++    // Go through the various bits of information and find the address
++    // and any broadcast/destination address.
++    rtattr* rta = IFA_RTA(msg);
++    size_t rta_len = IFA_PAYLOAD(hdr);
++    while (RTA_OK(rta, rta_len)) {
++      if (rta->rta_type == IFA_ADDRESS) {
++        if (msg->ifa_family == AF_INET || msg->ifa_family == AF_INET6) {
++          new_addr->SetAddress(msg->ifa_family, RTA_DATA(rta), RTA_PAYLOAD(rta));
++          new_addr->SetNetmask(msg->ifa_family, msg->ifa_prefixlen);
++        }
++      } else if (rta->rta_type == IFA_BROADCAST) {
++        if (msg->ifa_family == AF_INET || msg->ifa_family == AF_INET6) {
++          new_addr->SetBroadcastAddress(msg->ifa_family, RTA_DATA(rta), RTA_PAYLOAD(rta));
++        }
++      }
++      rta = RTA_NEXT(rta, rta_len);
++    }
++  }
++}
++static bool __send_netlink_request(int fd, int type) {
++  struct NetlinkMessage {
++    nlmsghdr hdr;
++    rtgenmsg msg;
++  } request;
++  memset(&request, 0, sizeof(request));
++  request.hdr.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
++  request.hdr.nlmsg_type = type;
++  request.hdr.nlmsg_len = sizeof(request);
++  request.msg.rtgen_family = AF_UNSPEC; // All families.
++  return (TEMP_FAILURE_RETRY(send(fd, &request, sizeof(request), 0)) == sizeof(request));
++}
++static bool __read_netlink_responses(int fd, ifaddrs** out, char* buf, size_t buf_len) {
++  ssize_t bytes_read;
++  // Read through all the responses, handing interesting ones to __handle_netlink_response.
++  while ((bytes_read = TEMP_FAILURE_RETRY(recv(fd, buf, buf_len, 0))) > 0) {
++    nlmsghdr* hdr = reinterpret_cast<nlmsghdr*>(buf);
++    for (; NLMSG_OK(hdr, static_cast<size_t>(bytes_read)); hdr = NLMSG_NEXT(hdr, bytes_read)) {
++      if (hdr->nlmsg_type == NLMSG_DONE) return true;
++      if (hdr->nlmsg_type == NLMSG_ERROR) return false;
++      __handle_netlink_response(out, hdr);
++    }
++  }
++  // We only get here if recv fails before we see a NLMSG_DONE.
++  return false;
++}
++int getifaddrs(ifaddrs** out) {
++  // Make cleanup easy.
++  *out = nullptr;
++  // The kernel keeps packets under 8KiB (NLMSG_GOODSIZE),
++  // but that's a bit too large to go on the stack.
++  size_t buf_len = 8192;
++  char* buf = NEW_C_HEAP_ARRAY(char, buf_len, mtInternal);
++  if (buf == nullptr) return -1;
++  // Open the netlink socket and ask for all the links and addresses.
++  int fd = socket(PF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
++  bool okay = fd != -1 &&
++      __send_netlink_request(fd, RTM_GETLINK) && __read_netlink_responses(fd, out, buf, buf_len) &&
++      __send_netlink_request(fd, RTM_GETADDR) && __read_netlink_responses(fd, out, buf, buf_len);
++  if (!okay) {
++    freeifaddrs(*out);
++    // Ensure that callers crash if they forget to check for success.
++    *out = nullptr;
++  }
++  {
++    int saved_errno = errno;
++    close(fd);
++    FREE_C_HEAP_ARRAY(char, buf);
++    errno = saved_errno;
++  }
++  return okay ? 0 : -1;
++}
++void freeifaddrs(ifaddrs* list) {
++  while (list != nullptr) {
++    ifaddrs* current = list;
++    list = list->ifa_next;
++    os::free(current);
++  }
++}
++#endif
++
++/**
++ * [getifaddrs(3)](http://man7.org/linux/man-pages/man3/getifaddrs.3.html) creates a linked list
++ * of `struct ifaddrs`. The list must be freed by freeifaddrs().
++ *
++ * Returns 0 and stores the list in `*__list_ptr` on success,
++ * and returns -1 and sets `errno` on failure.
++ *
++ * Available since API level 24.
++ */
+ /**
+    /proc/[number]/stat
+               Status information about the process.  This is used by ps(1).  It is defined in /usr/src/linux/fs/proc/array.c.
+diff --git a/src/hotspot/os/posix/forbiddenFunctions_posix.hpp b/src/hotspot/os/posix/forbiddenFunctions_posix.hpp
+index 529cf2207..9041f85d7 100644
+--- a/src/hotspot/os/posix/forbiddenFunctions_posix.hpp
++++ b/src/hotspot/os/posix/forbiddenFunctions_posix.hpp
+@@ -36,29 +36,4 @@
+ #include <unistd.h>
+ #endif
+ 
+-// If needed, add os::strndup and use that instead.
+-FORBID_C_FUNCTION(char* strndup(const char*, size_t), noexcept, "don't use");
+-
+-// These are unimplementable for Windows, and they aren't useful for a
+-// POSIX implementation of NMT either.
+-// https://stackoverflow.com/questions/62962839/stdaligned-alloc-missing-from-visual-studio-2019
+-FORBID_C_FUNCTION(int posix_memalign(void**, size_t, size_t), noexcept, "don't use");
+-FORBID_C_FUNCTION(void* aligned_alloc(size_t, size_t), noexcept, "don't use");
+-
+-// realpath with a null second argument mallocs a string for the result.
+-// With a non-null second argument, there is a risk of buffer overrun.
+-PRAGMA_DIAG_PUSH
+-FORBIDDEN_FUNCTION_IGNORE_CLANG_FORTIFY_WARNING
+-FORBID_C_FUNCTION(char* realpath(const char*, char*), noexcept, "use os::realpath");
+-PRAGMA_DIAG_POP
+-
+-// Returns a malloc'ed string.
+-FORBID_C_FUNCTION(char* get_current_dir_name(), noexcept, "use os::get_current_directory");
+-
+-// Problematic API that should never be used.
+-FORBID_C_FUNCTION(char* getwd(char*), noexcept, "use os::get_current_directory");
+-
+-// BSD utility that is subtly different from realloc.
+-FORBID_C_FUNCTION(void* reallocf(void*, size_t), /* not noexcept */, "use os::realloc");
+-
+ #endif // OS_POSIX_FORBIDDENFUNCTIONS_POSIX_HPP
 diff --git a/src/hotspot/os/posix/os_posix.cpp b/src/hotspot/os/posix/os_posix.cpp
-index cf0f48974..04a5930b5 100644
+index 7e5756d9a..e49bec05d 100644
 --- a/src/hotspot/os/posix/os_posix.cpp
 +++ b/src/hotspot/os/posix/os_posix.cpp
-@@ -74,7 +74,9 @@
+@@ -84,7 +84,9 @@
  #include <sys/wait.h>
  #include <time.h>
  #include <unistd.h>
@@ -371,16 +898,100 @@ index cf0f48974..04a5930b5 100644
  
  #ifdef __APPLE__
    #include <crt_externs.h>
-@@ -453,2 +455,3 @@ void os::Posix::print_load_average(outputStream* st) {
+@@ -106,6 +108,8 @@ static int clock_tics_per_sec = 100;
+ // Platform minimum stack allowed
+ size_t os::_os_min_stack_allowed = PTHREAD_STACK_MIN;
+ 
++static bool read_so_path_from_maps(const char* so_name, char* buf, int buflen);
++
+ // Check core dump limit and report possible place where core can be found
+ void os::check_core_dump_prerequisites(char* buffer, size_t bufferSize, bool check_only) {
+   stringStream buf(buffer, bufferSize);
+@@ -567,6 +571,7 @@ void os::Posix::print_load_average(outputStream* st) {
+ // unfortunately it does not work on macOS and Linux because the utx chain has no entry
+ // for reboot at least on my test machines
  void os::Posix::print_uptime_info(outputStream* st) {
 +#ifndef __ANDROID__
    int bootsec = -1;
-@@ -467,3 +470,4 @@ void os::Posix::print_uptime_info(outputStream* st) {
+   time_t currsec = time(nullptr);
+   struct utmpx* ent;
+@@ -581,6 +586,7 @@ void os::Posix::print_uptime_info(outputStream* st) {
+   if (bootsec != -1) {
      os::print_dhm(st, "OS uptime:", currsec-bootsec);
    }
 +#endif
  }
-@@ -1921,11 +1925,31 @@ int os::fork_and_exec(const char* cmd) {
+ 
+ static void print_rlimit(outputStream* st, const char* msg,
+@@ -1097,6 +1103,30 @@ bool os::same_files(const char* file1, const char* file2) {
+ 
+ static char saved_jvm_path[MAXPATHLEN] = {0};
+ 
++static bool read_so_path_from_maps(const char* so_name, char* buf, int buflen) {
++  FILE *fp = fopen("/proc/self/maps", "r");
++  assert(fp, "Failed to open /proc/self/maps");
++  if (!fp) {
++    return false;
++  }
++
++  char maps_buffer[2048];
++  while (fgets(maps_buffer, 2048, fp) != NULL) {
++    if (strstr(maps_buffer, so_name) == NULL) {
++      continue;
++    }
++
++    char *so_path = strchr(maps_buffer, '/');
++    so_path[strlen(so_path) - 1] = '\0'; // Cut trailing \n
++    jio_snprintf(buf, buflen, "%s", so_path);
++    fclose(fp);
++    return true;
++  }
++
++  fclose(fp);
++  return false;
++}
++
+ // Find the full path to the current module, libjvm.so
+ void os::jvm_path(char *buf, jint buflen) {
+   // Error checking.
+@@ -1132,6 +1162,19 @@ void os::jvm_path(char *buf, jint buflen) {
+   }
+   fname = dli_fname;
+ #endif // AIX
++#ifdef __ANDROID__
++  if (dli_fname[0] == '\0') {
++    return;
++  }
++
++  if (strchr(dli_fname, '/') == NULL) {
++    bool ok = read_so_path_from_maps(dli_fname, buf, buflen);
++    assert(ok, "unable to turn relative libjvm.so path into absolute");
++    return;
++  }
++
++  os::snprintf(buf, buflen, /* "%s/lib/%s/server/%s", java_home_var, cpu_arch, */ "%s", dli_fname);
++#else // !__ANDROID__
+   char* rp = nullptr;
+   if (fname[0] != '\0') {
+     rp = os::realpath(fname, buf, buflen);
+@@ -1179,6 +1222,7 @@ void os::jvm_path(char *buf, jint buflen) {
+       }
+     }
+   }
++#endif
+ 
+   strncpy(saved_jvm_path, buf, MAXPATHLEN);
+   saved_jvm_path[MAXPATHLEN - 1] = '\0';
+@@ -1403,7 +1447,7 @@ static bool _use_clock_monotonic_condattr = false;
+ // Determine what POSIX API's are present and do appropriate
+ // configuration.
+ void os::Posix::init(void) {
+-#if defined(_ALLBSD_SOURCE)
++#if defined(_ALLBSD_SOURCE) && !defined(ANDROID)
+   clock_tics_per_sec = CLK_TCK;
+ #else
+   clock_tics_per_sec = checked_cast<int>(sysconf(_SC_CLK_TCK));
+@@ -2131,11 +2175,31 @@ int os::fork_and_exec(const char* cmd) {
    const char* argv[4] = {"sh", "-c", cmd, nullptr};
    pid_t pid = -1;
    char** env = os::get_environ();
@@ -412,7 +1023,7 @@ index cf0f48974..04a5930b5 100644
      int status;
      // Wait for the child process to exit.  This returns immediately if
      // the child has already exited. */
-@@ -1950,9 +1974,11 @@ int os::fork_and_exec(const char* cmd) {
+@@ -2160,9 +2224,11 @@ int os::fork_and_exec(const char* cmd) {
        // Unknown exit code; pass it through
        return status;
      }
@@ -424,24 +1035,40 @@ index cf0f48974..04a5930b5 100644
    }
  }
  
+diff --git a/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp b/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp
+index c6e012ecf..d4f956756 100644
+--- a/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp
++++ b/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp
+@@ -47,6 +47,8 @@
+   bool pd_get_top_frame(frame* fr_addr, void* ucontext, bool isInJava);
+ public:
+ 
+-  static Thread *aarch64_get_thread_helper();
++  static Thread *aarch64_get_thread_helper() {
++    return Thread::current();
++  }
+ 
+ #endif // OS_CPU_LINUX_AARCH64_JAVATHREAD_LINUX_AARCH64_HPP
 diff --git a/src/hotspot/os_cpu/linux_aarch64/threadLS_linux_aarch64.S b/src/hotspot/os_cpu/linux_aarch64/threadLS_linux_aarch64.S
-index ac60d6aa9..0645f0e00 100644
+index 451c13773..deab716bd 100644
 --- a/src/hotspot/os_cpu/linux_aarch64/threadLS_linux_aarch64.S
 +++ b/src/hotspot/os_cpu/linux_aarch64/threadLS_linux_aarch64.S
-@@ -19,5 +19,6 @@
+@@ -22,6 +22,7 @@
+ 
  #include "defs.S.inc"
  
 +#ifndef __ANDROID__
          // JavaThread::aarch64_get_thread_helper()
          //
          // Return the current thread pointer in x0.
-@@ -44,5 +45,6 @@ _ZN10JavaThread25aarch64_get_thread_helperEv:
+@@ -44,6 +45,7 @@ DECLARE_FUNC(_ZN10JavaThread25aarch64_get_thread_helperEv):
          ret
  
          .size _ZN10JavaThread25aarch64_get_thread_helperEv, .-_ZN10JavaThread25aarch64_get_thread_helperEv
 +#endif
  
  /* Emit .note.gnu.property section in case of PAC or BTI being enabled.
+  * For more details see "ELF for the Arm(R) 64-bit Architecture (AArch64)".
 diff --git a/src/hotspot/os_cpu/linux_arm/fpu_control.h b/src/hotspot/os_cpu/linux_arm/fpu_control.h
 new file mode 100644
 index 000000000..745243d62
@@ -508,10 +1135,10 @@ index 000000000..745243d62
 +#endif /* __SOFTFP__ */
 +#endif /* _FPU_CONTROL_H */
 diff --git a/src/hotspot/os_cpu/linux_arm/linux_arm_32.S b/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-index eb560d8f0..be8da136b 100644
+index a866858da..db3a44c71 100644
 --- a/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
 +++ b/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-@@ -88,7 +88,7 @@ dw_f2b_loop_32:
+@@ -66,7 +66,7 @@ dw_f2b_loop_32:
          stmia to!, {r3 - r9, ip}
          bgt     dw_f2b_loop_32
  dw_f2b_loop_32_finish:
@@ -519,8 +1146,8 @@ index eb560d8f0..be8da136b 100644
 +        addslt  r2, #32
          beq     disjoint_words_finish
          cmp     r2, #16
- 	blt	disjoint_words_small
-@@ -136,7 +136,7 @@ cw_f2b_loop_32:
+         blt	disjoint_words_small
+@@ -114,7 +114,7 @@ cw_f2b_loop_32:
          stmia to!, {r3 - r9, ip}
          bgt     cw_f2b_loop_32
  cw_f2b_loop_32_finish:
@@ -528,8 +1155,8 @@ index eb560d8f0..be8da136b 100644
 +        addslt  r2, #32
          beq     conjoint_words_finish
          cmp     r2, #16
- 	blt	conjoint_words_small
-@@ -169,7 +169,7 @@ cw_b2f_loop_32:
+         blt	conjoint_words_small
+@@ -147,7 +147,7 @@ cw_b2f_loop_32:
          stmdb to!, {r3-r9,ip}
          bgt     cw_b2f_loop_32
  cw_b2f_loop_32_finish:
@@ -537,8 +1164,8 @@ index eb560d8f0..be8da136b 100644
 +        addslt  r2, #32
          beq     conjoint_words_finish
          cmp     r2, #16
- 	blt	cw_b2f_copy_small
-@@ -221,7 +221,7 @@ cs_f2b_loop_32:
+         blt	cw_b2f_copy_small
+@@ -199,7 +199,7 @@ cs_f2b_loop_32:
          stmia to!, {r3 - r9, ip}
          bgt     cs_f2b_loop_32
  cs_f2b_loop_32_finish:
@@ -547,7 +1174,7 @@ index eb560d8f0..be8da136b 100644
          beq     conjoint_shorts_finish
          movs    r6, r2, lsr #3
          .align 3
-@@ -237,11 +237,11 @@ cs_f2b_4:
+@@ -215,11 +215,11 @@ cs_f2b_4:
          beq     conjoint_shorts_finish
          cmp     r2, #4
          ldrh    r3, [from], #2
@@ -562,8 +1189,8 @@ index eb560d8f0..be8da136b 100644
 +        strhgt  r5, [to], #2
          b       conjoint_shorts_finish
  
- 	# Destination not aligned
-@@ -299,11 +299,11 @@ cs_f2b_4_u:
+         # Destination not aligned
+@@ -277,11 +277,11 @@ cs_f2b_4_u:
          beq     conjoint_shorts_finish
          cmp     r2, #4
          ldrh    r3, [from], #2
@@ -578,8 +1205,8 @@ index eb560d8f0..be8da136b 100644
 +        strhgt  r5, [to], #2
          b       conjoint_shorts_finish
  
- 	# Src and dest overlap, copy in a descending order
-@@ -326,7 +326,7 @@ cs_b2f_loop_32:
+         # Src and dest overlap, copy in a descending order
+@@ -304,7 +304,7 @@ cs_b2f_loop_32:
          stmdb to!, {r3-r9,ip}
          bgt     cs_b2f_loop_32
  cs_b2f_loop_32_finish:
@@ -588,7 +1215,7 @@ index eb560d8f0..be8da136b 100644
          beq     conjoint_shorts_finish
          cmp     r2, #24
          blt     cs_b2f_16
-@@ -352,11 +352,11 @@ cs_b2f_8:
+@@ -330,11 +330,11 @@ cs_b2f_8:
  cs_b2f_all_copy:
          cmp     r2, #4
          ldrh    r3, [from, #-2]!
@@ -603,17 +1230,17 @@ index eb560d8f0..be8da136b 100644
 +        strhgt  r5, [to, #-2]!
          b       conjoint_shorts_finish
  
- 	# Destination not aligned
-@@ -391,7 +391,7 @@ cs_b2f_16_loop_u:
+         # Destination not aligned
+@@ -369,7 +369,7 @@ cs_b2f_16_loop_u:
          bgt     cs_b2f_16_loop_u
          beq     conjoint_shorts_finish
  cs_b2f_16_loop_u_finished:
 -        addlts  r2, #16
 +        addslt  r2, #16
          ldr     r3, [from]
- 	cmp     r2, #10
+         cmp     r2, #10
          blt     cs_b2f_2_u_loop
-@@ -454,7 +454,7 @@ cl_f2b_loop_32:
+@@ -432,7 +432,7 @@ cl_f2b_loop_32:
          stmia to!, {r3 - r9, ip}
          bgt     cl_f2b_loop_32
  cl_f2b_loop_32_finish:
@@ -622,7 +1249,7 @@ index eb560d8f0..be8da136b 100644
          beq     conjoint_longs_finish
  conjoint_longs_small:
          cmp     r2, #16
-@@ -487,7 +487,7 @@ cl_b2f_loop_32:
+@@ -465,7 +465,7 @@ cl_b2f_loop_32:
          stmdb 	to!, {r3 - r9, ip}
          bgt     cl_b2f_loop_32
  cl_b2f_loop_32_finish:
@@ -630,12 +1257,12 @@ index eb560d8f0..be8da136b 100644
 +        addslt  r2, #32
          beq     conjoint_longs_finish
          cmp     r2, #16
- 	blt	cl_b2f_copy_8
+         blt	cl_b2f_copy_8
 diff --git a/src/hotspot/os_cpu/linux_arm/os_linux_arm.cpp b/src/hotspot/os_cpu/linux_arm/os_linux_arm.cpp
-index d4c9bb304..3123efef2 100644
+index f4196d89f..5d8eb9653 100644
 --- a/src/hotspot/os_cpu/linux_arm/os_linux_arm.cpp
 +++ b/src/hotspot/os_cpu/linux_arm/os_linux_arm.cpp
-@@ -72,7 +72,11 @@
+@@ -70,7 +70,11 @@
  # include <pwd.h>
  # include <poll.h>
  # include <ucontext.h>
@@ -647,7 +1274,7 @@ index d4c9bb304..3123efef2 100644
  # include <asm/ptrace.h>
  
  #define SPELL_REG_SP  "sp"
-@@ -90,8 +94,14 @@ enum {
+@@ -88,8 +92,14 @@ enum {
  #endif
  
  address os::current_stack_pointer() {
@@ -662,7 +1289,7 @@ index d4c9bb304..3123efef2 100644
  }
  
  char* os::non_memory_address_word() {
-@@ -415,8 +425,8 @@ void os::setup_fpu() {
+@@ -444,8 +454,8 @@ void os::setup_fpu() {
  #if !defined(__SOFTFP__) && defined(__VFP_FP__)
    // Turn on IEEE-754 compliant VFP mode
    __asm__ volatile (
@@ -788,24 +1415,30 @@ index 000000000..605302c09
 +extern fpu_control_t __fpu_control;
 +
 +#endif	/* fpu_control.h */
-diff --git a/src/hotspot/os_cpu/linux_x86/os_linux_x86.cpp b/src/hotspot/os_cpu/linux_x86/os_linux_x86.cpp
-index 90c7d3c93..0a10fba48 100644
---- a/src/hotspot/os_cpu/linux_x86/os_linux_x86.cpp
-+++ b/src/hotspot/os_cpu/linux_x86/os_linux_x86.cpp
-@@ -74,8 +74,10 @@
- # include <pwd.h>
- # include <poll.h>
- # include <ucontext.h>
--#ifndef AMD64
-+#if !defined(AMD64) && !defined(__ANDROID__)
- # include <fpu_control.h>
-+#elif defined(__ANDROID__)
-+# include "fpu_control.h"
- #endif
+diff --git a/src/hotspot/share/jvmci/jvmciRuntime.cpp b/src/hotspot/share/jvmci/jvmciRuntime.cpp
+index a178ac663..65013817f 100644
+--- a/src/hotspot/share/jvmci/jvmciRuntime.cpp
++++ b/src/hotspot/share/jvmci/jvmciRuntime.cpp
+@@ -1239,7 +1239,7 @@ JNIEnv* JVMCIRuntime::init_shared_library_javavm(int* create_JavaVM_err, const c
  
- #ifdef AMD64
+     ResourceMark rm;
+     JavaVMInitArgs vm_args;
+-    vm_args.version = JNI_VERSION_1_2;
++    vm_args.version = JNI_VERSION_24;
+     vm_args.ignoreUnrecognized = JNI_TRUE;
+     JavaVMOption options[6];
+     jlong javaVM_id = 0;
+@@ -1261,7 +1261,7 @@ JNIEnv* JVMCIRuntime::init_shared_library_javavm(int* create_JavaVM_err, const c
+     options[5].optionString = (char*) "_createvm_errorstr";
+     options[5].extraInfo = (void*) err_msg;
+ 
+-    vm_args.version = JNI_VERSION_1_2;
++    vm_args.version = JNI_VERSION_24;
+     vm_args.options = options;
+     vm_args.nOptions = sizeof(options) / sizeof(JavaVMOption);
+ 
 diff --git a/src/hotspot/share/utilities/elfFile.hpp b/src/hotspot/share/utilities/elfFile.hpp
-index 32ce08821..7103f3736 100644
+index 129889253..497cb33a5 100644
 --- a/src/hotspot/share/utilities/elfFile.hpp
 +++ b/src/hotspot/share/utilities/elfFile.hpp
 @@ -47,8 +47,10 @@ typedef Elf64_Phdr      Elf_Phdr;
@@ -828,6 +1461,75 @@ index 32ce08821..7103f3736 100644
  #define ELF_ST_TYPE ELF32_ST_TYPE
  #endif
  #endif
+diff --git a/src/hotspot/share/utilities/forbiddenFunctions.hpp b/src/hotspot/share/utilities/forbiddenFunctions.hpp
+index 47becd7b4..f6cbf8db6 100644
+--- a/src/hotspot/share/utilities/forbiddenFunctions.hpp
++++ b/src/hotspot/share/utilities/forbiddenFunctions.hpp
+@@ -44,40 +44,4 @@
+ #include "forbiddenFunctions_posix.hpp"
+ #endif
+ 
+-// Forbid the use of various C library functions.  Some of these have os::
+-// replacements that should be used instead.  Others are considered obsolete
+-// or have security concerns, either with preferred alternatives, or to be
+-// avoided entirely.
+-
+-FORBID_IMPORTED_NORETURN_C_FUNCTION(void exit(int), noexcept, "use os::exit")
+-FORBID_IMPORTED_NORETURN_C_FUNCTION(void _Exit(int), noexcept, "use os::exit")
+-
+-// Windows puts _exit in <stdlib.h>, POSIX in <unistd.h>.
+-FORBID_IMPORTED_NORETURN_C_FUNCTION(void _exit(int), /* not noexcept */, "use os::exit")
+-
+-FORBID_IMPORTED_C_FUNCTION(char* strerror(int), noexcept, "use os::strerror");
+-FORBID_IMPORTED_C_FUNCTION(char* strtok(char*, const char*), noexcept, "use strtok_r");
+-
+-// AIX declarations for sprintf and snprintf are not noexcept, which is
+-// inconsistent with most other system header declarations, including being
+-// inconsistent with vsprintf and fsnprintf.
+-FORBID_C_FUNCTION(int sprintf(char*, const char*, ...), NOT_AIX(noexcept), "use os::snprintf");
+-FORBID_C_FUNCTION(int snprintf(char*, size_t, const char*, ...), NOT_AIX(noexcept), "use os::snprintf");
+-
+-PRAGMA_DIAG_PUSH
+-FORBIDDEN_FUNCTION_IGNORE_CLANG_FORTIFY_WARNING
+-FORBID_C_FUNCTION(int vsprintf(char*, const char*, va_list), noexcept, "use os::vsnprintf");
+-FORBID_C_FUNCTION(int vsnprintf(char*, size_t, const char*, va_list), noexcept, "use os::vsnprintf");
+-PRAGMA_DIAG_POP
+-
+-// All of the following functions return raw C-heap pointers (sometimes as an
+-// option, e.g. realpath or getwd) or, in case of free(), take raw C-heap
+-// pointers.  We generally want allocation to be done through NMT.
+-FORBID_IMPORTED_C_FUNCTION(void* malloc(size_t size), noexcept, "use os::malloc");
+-FORBID_IMPORTED_C_FUNCTION(void free(void *ptr), noexcept, "use os::free");
+-FORBID_IMPORTED_C_FUNCTION(void* calloc(size_t nmemb, size_t size), noexcept, "use os::malloc and zero out manually");
+-FORBID_IMPORTED_C_FUNCTION(void* realloc(void *ptr, size_t size), noexcept, "use os::realloc");
+-FORBID_IMPORTED_C_FUNCTION(char* strdup(const char *s), noexcept, "use os::strdup");
+-FORBID_IMPORTED_C_FUNCTION(wchar_t* wcsdup(const wchar_t *s), noexcept, "don't use");
+-
+ #endif // SHARE_UTILITIES_FORBIDDENFUNCTIONS_HPP
+diff --git a/src/java.base/share/classes/jdk/internal/util/StaticProperty.java b/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
+index 4fb3ae7a1..b5cc8b8d8 100644
+--- a/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
++++ b/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
+@@ -116,7 +116,7 @@ private StaticProperty() {}
+             USER_SCRIPT = "";
+         } else {
+             USER_SCRIPT = getProperty(props, "user.script", "");
+-            USER_COUNTRY = getProperty(props, "user.country", "");
++            USER_COUNTRY = getProperty(props, "user.country", "CN");
+             USER_VARIANT = getProperty(props, "user.variant", "");
+         }
+         USER_SCRIPT_DISPLAY = getProperty(props, "user.script.display", USER_SCRIPT);
+diff --git a/src/java.base/share/native/libjava/check_version.c b/src/java.base/share/native/libjava/check_version.c
+index 17a590fea..70fa6982d 100644
+--- a/src/java.base/share/native/libjava/check_version.c
++++ b/src/java.base/share/native/libjava/check_version.c
+@@ -30,5 +30,5 @@
+ JNIEXPORT jint JNICALL
+ DEF_JNI_OnLoad(JavaVM *vm, void *reserved)
+ {
+-    return JNI_VERSION_1_2;
++    return JNI_VERSION_24;
+ }
 diff --git a/src/java.base/share/native/libtinyiconv/iconv.cpp b/src/java.base/share/native/libtinyiconv/iconv.cpp
 new file mode 100644
 index 000000000..7018b6ce2
@@ -1273,10 +1975,10 @@ index 000000000..7018b6ce2
 +
 +#endif // __ANDROID__
 diff --git a/src/java.base/unix/classes/sun/net/dns/ResolverConfigurationImpl.java b/src/java.base/unix/classes/sun/net/dns/ResolverConfigurationImpl.java
-index 6074d323f..8b337d6e3 100644
+index 2f633ad71..513c70f8b 100644
 --- a/src/java.base/unix/classes/sun/net/dns/ResolverConfigurationImpl.java
 +++ b/src/java.base/unix/classes/sun/net/dns/ResolverConfigurationImpl.java
-@@ -63,8 +63,9 @@ public final class ResolverConfigurationImpl
+@@ -63,8 +63,9 @@ private ArrayList<String> resolvconf(String keyword,
          ArrayList<String> ll = new ArrayList<>();
  
          try {
@@ -1287,8 +1989,29 @@ index 6074d323f..8b337d6e3 100644
              String line;
              while ((line = in.readLine()) != null) {
                  int maxvalues = maxperkeyword;
+diff --git a/src/java.base/unix/native/libjava/ProcessImpl_md.c b/src/java.base/unix/native/libjava/ProcessImpl_md.c
+index 7f4d908a3..d5af62e28 100644
+--- a/src/java.base/unix/native/libjava/ProcessImpl_md.c
++++ b/src/java.base/unix/native/libjava/ProcessImpl_md.c
+@@ -340,13 +340,9 @@ throwIOExceptionImpl(JNIEnv *env, int errnum, const char *externalDetail, const
+     char tmpbuf[1024];
+     jstring s;
+ 
+-    if (errnum != 0) {
+-        int ret = getErrorString(errnum, tmpbuf, sizeof(tmpbuf));
+-        if (ret != EINVAL) {
+-            errorDetail = tmpbuf;
+-        } else {
+-            errorDetail = "unknown";
+-        }
++    if (errnum != EINVAL) {
++        getErrorString(errnum, tmpbuf, sizeof(tmpbuf));
++        errorDetail = tmpbuf;
+     } else {
+         errorDetail = "none";
+     }
 diff --git a/src/java.base/unix/native/libjava/java_props_md.c b/src/java.base/unix/native/libjava/java_props_md.c
-index 230de04c0..8e858b736 100644
+index 1cbc3665e..de6b4bfca 100644
 --- a/src/java.base/unix/native/libjava/java_props_md.c
 +++ b/src/java.base/unix/native/libjava/java_props_md.c
 @@ -46,6 +46,100 @@
@@ -1393,7 +2116,7 @@ index 230de04c0..8e858b736 100644
  #if !defined(P_tmpdir)
  #include <paths.h>
 diff --git a/src/java.base/unix/native/libjava/jni_util_md.c b/src/java.base/unix/native/libjava/jni_util_md.c
-index 460503cd7..193480e73 100644
+index 7195b3def..460174f9d 100644
 --- a/src/java.base/unix/native/libjava/jni_util_md.c
 +++ b/src/java.base/unix/native/libjava/jni_util_md.c
 @@ -31,7 +31,7 @@
@@ -1618,10 +2341,10 @@ index 000000000..388016eb3
 +
 +#endif
 diff --git a/src/java.base/unix/native/libjli/java_md.c b/src/java.base/unix/native/libjli/java_md.c
-index 21ef40688..b8c2520d2 100644
+index a75795af5..651a179ac 100644
 --- a/src/java.base/unix/native/libjli/java_md.c
 +++ b/src/java.base/unix/native/libjli/java_md.c
-@@ -584,7 +584,58 @@ const char*
+@@ -576,7 +576,58 @@ const char*
  SetExecname(char **argv)
  {
      char* exec_path = NULL;
@@ -1681,7 +2404,7 @@ index 21ef40688..b8c2520d2 100644
      {
          const char* self = "/proc/self/exe";
          char buf[PATH_MAX+1];
-@@ -594,10 +645,6 @@ SetExecname(char **argv)
+@@ -586,10 +637,6 @@ SetExecname(char **argv)
              exec_path = JLI_StringDup(buf);
          }
      }
@@ -1692,11 +2415,31 @@ index 21ef40688..b8c2520d2 100644
  #endif
  
      if (exec_path == NULL) {
+diff --git a/src/java.base/unix/native/libnet/net_util_md.c b/src/java.base/unix/native/libnet/net_util_md.c
+index fc89b9101..4e37b349a 100644
+--- a/src/java.base/unix/native/libnet/net_util_md.c
++++ b/src/java.base/unix/native/libnet/net_util_md.c
+@@ -111,6 +111,7 @@ jint  IPv6_supported()
+     SOCKETADDRESS sa;
+     socklen_t sa_len = sizeof(SOCKETADDRESS);
+ 
++#ifndef __ANDROID__  // ANDROID: skip check, see libcore commit ae218d9b
+     fd = socket(AF_INET6, SOCK_STREAM, 0) ;
+     if (fd < 0) {
+         /*
+@@ -141,6 +142,7 @@ jint  IPv6_supported()
+         }
+     }
+ #endif
++#endif  // !defined __ANDROID__
+ 
+     /*
+      *  OK we may have the stack available in the kernel,
 diff --git a/src/java.base/unix/native/libnet/net_util_md.h b/src/java.base/unix/native/libnet/net_util_md.h
-index 902cf9673..3b8acd66b 100644
+index 902cf9673..9ade1d573 100644
 --- a/src/java.base/unix/native/libnet/net_util_md.h
 +++ b/src/java.base/unix/native/libnet/net_util_md.h
-@@ -26,6 +26,9 @@
+@@ -26,10 +26,17 @@
  #ifndef NET_UTILS_MD_H
  #define NET_UTILS_MD_H
  
@@ -1706,12 +2449,19 @@ index 902cf9673..3b8acd66b 100644
  #include <netdb.h>
  #include <poll.h>
  #include <sys/socket.h>
+ 
++#ifdef __ANDROID__
++#include <netinet/in.h>
++#endif
++
+ /************************************************************************
+  * Macros and constants
+  */
 diff --git a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-index 9371bc001..ab7dd0fc0 100644
+index 4b5cfabeb..f21d13caa 100644
 --- a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
 +++ b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-@@ -149,7 +150,42 @@ static fstatat64_func* my_fstatat64_func = NULL;
- #if defined(__linux__)
+@@ -217,6 +217,41 @@ static fdopendir_func* my_fdopendir_func = NULL;
  static statx_func* my_statx_func = NULL;
  #endif
  
@@ -1753,15 +2503,41 @@ index 9371bc001..ab7dd0fc0 100644
  /**
   * fstatat missing from glibc on Linux.
   */
-@@ -857,4 +857,5 @@
+@@ -375,7 +410,7 @@ Java_sun_nio_fs_UnixNativeDispatcher_init(JNIEnv* env, jclass this)
+ #ifdef _DARWIN_FEATURE_64_BIT_INODE
+     capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
+ #endif
+-#if defined(__linux__)
++#if defined(__linux__) && !defined(__ANDROID__)
+     my_statx_func = (statx_func*) dlsym(RTLD_DEFAULT, "statx");
+     if (my_statx_func != NULL) {
+         capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
+@@ -875,8 +910,9 @@ Java_sun_nio_fs_UnixNativeDispatcher_futimens0(JNIEnv* env, jclass this, jint fi
+ {
+     struct timespec times[2];
      int err = 0;
 +    struct timespec times2[2];
  
 -    times[0].tv_sec = accessTime / 1000000000;
 +    times[0].tv_sec = times2[0].tv_sec = accessTime / 1000000000;
      times[0].tv_nsec = accessTime % 1000000000;
+ 
+     times[1].tv_sec = modificationTime / 1000000000;
+diff --git a/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c b/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
+index 0d352c36b..064bf7439 100644
+--- a/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
++++ b/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
+@@ -47,7 +47,7 @@ static int pixmapWidth = 0;
+ static int pixmapHeight = 0;
+ 
+ #define FONT_AWT_LOCK() \
+-env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2); \
++env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_24); \
+ AWT_LOCK();
+ 
+ int CreatePixmapAndGC (int width, int height)
 diff --git a/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c b/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c
-index b2dedca35..c01ccfb8d 100644
+index 356b52dfb..16f04db38 100644
 --- a/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c
 +++ b/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c
 @@ -30,6 +30,7 @@
@@ -1772,7 +2548,24 @@ index b2dedca35..c01ccfb8d 100644
  #include "gdefs.h"
  
  #include <sys/param.h>
-@@ -98,6 +99,30 @@ JNIEXPORT jboolean JNICALL AWTIsHeadless() {
+@@ -57,14 +58,14 @@ typedef jint JNICALL JNI_OnLoad_type(JavaVM *vm, void *reserved);
+    first loaded */
+ JNIEXPORT JavaVM *jvm;
+ 
+-JNIEXPORT jboolean JNICALL AWTIsHeadless() {
++JNIEXPORT jboolean JNICALL AWTIsHeadless(void) {
+     static JNIEnv *env = NULL;
+     static jboolean isHeadless;
+     jmethodID headlessFn;
+     jclass graphicsEnvClass;
+ 
+     if (env == NULL) {
+-        env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
++        env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_24);
+         graphicsEnvClass = (*env)->FindClass(env,
+                                              "java/awt/GraphicsEnvironment");
+         CHECK_EXCEPTION_FATAL(env, "FindClass java/awt/GraphicsEnvironment failed");
+@@ -95,6 +96,30 @@ JNIEXPORT jboolean JNICALL AWTIsHeadless() {
    #define HEADLESS_PATH "/libawt_headless.so"
  #endif
  
@@ -1803,7 +2596,23 @@ index b2dedca35..c01ccfb8d 100644
  jint
  AWT_OnLoad(JavaVM *vm, void *reserved)
  {
-@@ -119,6 +144,6 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
+@@ -104,12 +129,12 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
+     char *p, *tk;
+     JNI_OnLoad_type *JNI_OnLoad_ptr;
+     struct utsname name;
+-    JNIEnv *env = (JNIEnv *)JNU_GetEnv(vm, JNI_VERSION_1_2);
++    JNIEnv *env = (JNIEnv *)JNU_GetEnv(vm, JNI_VERSION_24);
+     void *v;
+ 
+     if (awtHandle != NULL) {
+         /* Avoid several loading attempts */
+-        return JNI_VERSION_1_2;
++        return JNI_VERSION_24;
+     }
+ 
+     jvm = vm;
+@@ -135,7 +160,7 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
+         /* Get address of this library and the directory containing it. */
          dladdr((void *)AWT_OnLoad, &dlinfo);
          if (realpath((char *)dlinfo.dli_fname, buf) == NULL) {
 -            perror((char *)dlinfo.dli_fname);
@@ -1811,6 +2620,15 @@ index b2dedca35..c01ccfb8d 100644
          }
          len = strlen(buf);
          p = strrchr(buf, '/');
+@@ -152,7 +177,7 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
+         awtHandle = dlopen(buf, RTLD_LAZY | RTLD_GLOBAL);
+     }
+ 
+-    return JNI_VERSION_1_2;
++    return JNI_VERSION_24;
+ }
+ 
+ JNIEXPORT jint JNICALL
 diff --git a/src/java.instrument/unix/native/libinstrument/EncodingSupport_md.c b/src/java.instrument/unix/native/libinstrument/EncodingSupport_md.c
 index 490eea9a5..27ee1c23e 100644
 --- a/src/java.instrument/unix/native/libinstrument/EncodingSupport_md.c
@@ -1827,6 +2645,42 @@ index 490eea9a5..27ee1c23e 100644
      if ( codeset == NULL || codeset[0] == 0 ) {
          UTF_DEBUG(("NO codeset returned by nl_langinfo(CODESET)\n"));
          return;
+diff --git a/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h b/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
+index 2dc0b611c..78508bc7e 100644
+--- a/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
++++ b/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
+@@ -35,7 +35,9 @@
+ #define ELF_ADDR        Elf64_Addr
+ #define ELF_AUXV        Elf64_auxv_t
+ 
++#ifndef ANDROID
+ #define ELF_ST_TYPE     ELF64_ST_TYPE
++#endif
+ 
+ #else
+ 
+diff --git a/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c b/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
+index 899d42152..652c28e4b 100644
+--- a/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
++++ b/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
+@@ -185,6 +185,9 @@ static ps_prochandle_ops core_ops = {
+ 
+ // read regs and create thread from NT_PRSTATUS entries from core file
+ static bool core_handle_prstatus(struct ps_prochandle* ph, const char* buf, size_t nbytes) {
++#ifdef __ANDROID__
++    return false;
++#else
+    // we have to read prstatus_t from buf
+    // assert(nbytes == sizeof(prstaus_t), "size mismatch on prstatus_t");
+    prstatus_t* prstat = (prstatus_t*) buf;
+@@ -234,6 +237,7 @@ static bool core_handle_prstatus(struct ps_prochandle* ph, const char* buf, size
+    }
+ 
+    return true;
++#endif // __ANDROID__
+ }
+ 
+ #define ROUNDUP(x, y)  ((((x)+((y)-1))/(y))*(y))
 diff --git a/src/jdk.jdwp.agent/share/native/libjdwp/utf_util.c b/src/jdk.jdwp.agent/share/native/libjdwp/utf_util.c
 index f5573930d..b64e30046 100644
 --- a/src/jdk.jdwp.agent/share/native/libjdwp/utf_util.c
@@ -1843,1019 +2697,3 @@ index f5573930d..b64e30046 100644
          }
  
          if (codeset == NULL) {
-diff --git a/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp b/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp
-index c6e012ecf..d4f956756 100644
---- a/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp
-+++ b/src/hotspot/os_cpu/linux_aarch64/javaThread_linux_aarch64.hpp
-@@ -47,6 +47,8 @@ private:
-   bool pd_get_top_frame(frame* fr_addr, void* ucontext, bool isInJava);
- public:
- 
--  static Thread *aarch64_get_thread_helper();
-+  static Thread *aarch64_get_thread_helper() {
-+    return Thread::current();
-+  }
- 
- #endif // OS_CPU_LINUX_AARCH64_JAVATHREAD_LINUX_AARCH64_HPP
-
-diff --git a/src/java.base/unix/native/libnet/net_util_md.c b/src/java.base/unix/native/libnet/net_util_md.c
-index 4ec11a136..01b85db4d 100644
---- a/src/java.base/unix/native/libnet/net_util_md.c
-+++ b/src/java.base/unix/native/libnet/net_util_md.c
-@@ -129,6 +129,7 @@ jint  IPv6_supported()
-     SOCKETADDRESS sa;
-     socklen_t sa_len = sizeof(SOCKETADDRESS);
- 
-+#ifndef __ANDROID__  // ANDROID: skip check, see libcore commit ae218d9b
-     fd = socket(AF_INET6, SOCK_STREAM, 0) ;
-     if (fd < 0) {
-         /*
-@@ -172,6 +173,7 @@ jint  IPv6_supported()
-         }
-     }
- #endif
-+#endif  // !defined __ANDROID__
- 
-     /*
-      *  OK we may have the stack available in the kernel,
-diff --git a/make/autoconf/toolchain.m4 b/make/autoconf/toolchain.m4
-index 7a24815..d20a9ff 100644
---- a/make/autoconf/toolchain.m4
-+++ b/make/autoconf/toolchain.m4
-@@ -37,6 +37,6 @@
- # All valid toolchains, regardless of platform (used by help.m4)
--VALID_TOOLCHAINS_all="gcc clang microsoft"
-+VALID_TOOLCHAINS_all="clang gcc microsoft"
- 
- # These toolchains are valid on different platforms
--VALID_TOOLCHAINS_linux="gcc clang"
-+VALID_TOOLCHAINS_linux="clang gcc"
- VALID_TOOLCHAINS_macosx="clang"
-@@ -932,8 +932,8 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_BUILD_COMPILERS],
-         UTIL_REQUIRE_PROGS(BUILD_CC, clang)
-         UTIL_REQUIRE_PROGS(BUILD_CXX, clang++)
-       else
--        UTIL_REQUIRE_PROGS(BUILD_CC, cc gcc)
--        UTIL_REQUIRE_PROGS(BUILD_CXX, CC g++)
-+        UTIL_REQUIRE_PROGS(BUILD_CC, clang gcc)
-+        UTIL_REQUIRE_PROGS(BUILD_CXX, clang++ g++)
-       fi
-       UTIL_LOOKUP_PROGS(BUILD_NM, nm gcc-nm)
-       UTIL_LOOKUP_PROGS(BUILD_AR, ar gcc-ar lib)
-diff --git a/make/autoconf/libraries.m4 b/make/autoconf/libraries.m4
-index a1fc81564..fc0356e92 100644
---- a/make/autoconf/libraries.m4
-+++ b/make/autoconf/libraries.m4
-@@ -74,12 +74,7 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
-     NEEDS_LIB_FREETYPE=true
-   fi
- 
--  # Check if alsa is needed
--  if test "x$OPENJDK_TARGET_OS" = xlinux; then
--    NEEDS_LIB_ALSA=true
--  else
--    NEEDS_LIB_ALSA=false
--  fi
-+  NEEDS_LIB_ALSA=false
- 
-   # Check if ffi is needed
-   if HOTSPOT_CHECK_JVM_VARIANT(zero) || test "x$ENABLE_FALLBACK_LINKER" = "xtrue"; then
-diff --git a/make/hotspot/lib/JvmFlags.gmk b/make/hotspot/lib/JvmFlags.gmk
-index e5929ab..08597d5 100644
---- a/make/hotspot/lib/JvmFlags.gmk
-+++ b/make/hotspot/lib/JvmFlags.gmk
-@@ -51,6 +51,12 @@ JVM_CFLAGS_INCLUDES += \
-     -I$(TOPDIR)/src/java.base/share/native/libjimage \
-     #
- 
-+ifeq ($(call isTargetOs, android ios), true)
-+  JVM_CFLAGS_INCLUDES += \
-+    -I$(TOPDIR)/src/hotspot/os/linux \
-+    #
-+endif
-+
- # INCLUDE_SUFFIX_* is only meant for including the proper
- # platform files. Don't use it to guard code. Use the value of
- # HOTSPOT_TARGET_CPU_DEFINE etc. instead.
-diff --git a/src/hotspot/os/posix/os_posix.cpp b/src/hotspot/os/posix/os_posix.cpp
-index 61214a4..87e3114 100644
---- a/src/hotspot/os/posix/os_posix.cpp
-+++ b/src/hotspot/os/posix/os_posix.cpp
-@@ -1277,7 +1277,7 @@ static bool _use_clock_monotonic_condattr = false;
- // Determine what POSIX API's are present and do appropriate
- // configuration.
- void os::Posix::init(void) {
--#if defined(_ALLBSD_SOURCE)
-+#if defined(_ALLBSD_SOURCE) && !defined(ANDROID)
-   clock_tics_per_sec = CLK_TCK;
- #else
-   clock_tics_per_sec = checked_cast<int>(sysconf(_SC_CLK_TCK));
-diff --git a/src/java.base/unix/native/libnet/net_util_md.h b/src/java.base/unix/native/libnet/net_util_md.h
-index 902cf96..a3f24b4 100644
---- a/src/java.base/unix/native/libnet/net_util_md.h
-+++ b/src/java.base/unix/native/libnet/net_util_md.h
-@@ -30,6 +30,10 @@
- #include <poll.h>
- #include <sys/socket.h>
- 
-+#ifdef __ANDROID__
-+#include <netinet/in.h>
-+#endif
-+
- /************************************************************************
-  * Macros and constants
-  */
-diff --git a/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h b/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
-index 2dc0b61..78508bc 100644
---- a/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
-+++ b/src/jdk.hotspot.agent/linux/native/libsaproc/elfmacros.h
-@@ -35,7 +35,9 @@
- #define ELF_ADDR        Elf64_Addr
- #define ELF_AUXV        Elf64_auxv_t
- 
-+#ifndef ANDROID
- #define ELF_ST_TYPE     ELF64_ST_TYPE
-+#endif
- 
- #else
- 
-diff --git a/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c b/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
-index b1b69c8..972f9e3 100644
---- a/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
-+++ b/src/jdk.hotspot.agent/linux/native/libsaproc/ps_core.c
-@@ -184,6 +184,9 @@ static ps_prochandle_ops core_ops = {
- 
- // read regs and create thread from NT_PRSTATUS entries from core file
- static bool core_handle_prstatus(struct ps_prochandle* ph, const char* buf, size_t nbytes) {
-+#ifdef __ANDROID__
-+    return false;
-+#else
-    // we have to read prstatus_t from buf
-    // assert(nbytes == sizeof(prstaus_t), "size mismatch on prstatus_t");
-    prstatus_t* prstat = (prstatus_t*) buf;
-@@ -243,6 +246,7 @@ static bool core_handle_prstatus(struct ps_prochandle* ph, const char* buf, size
-    }
- 
-    return true;
-+#endif // __ANDROID__
- }
- 
- #define ROUNDUP(x, y)  ((((x)+((y)-1))/(y))*(y))
-diff --git a/make/autoconf/flags-cflags.m4 b/make/autoconf/flags-cflags.m4
-index e80d9a98957db..44ccb2fca1141 100644
---- a/make/autoconf/flags-cflags.m4
-+++ b/make/autoconf/flags-cflags.m4
-@@ -71,7 +71,7 @@ AC_DEFUN([FLAGS_SETUP_SHARED_LIBS],
-       # arm specific settings
-       if test "x$OPENJDK_TARGET_CPU" = "xarm"; then
-         # '-Wl,-z,origin' isn't used on arm.
--        SET_SHARED_LIBRARY_ORIGIN='-Wl,-rpath,\$$$$ORIGIN[$]1'
-+        SET_SHARED_LIBRARY_ORIGIN="-Wl,-z,origin $SET_EXECUTABLE_ORIGIN"
-       else
-         SET_SHARED_LIBRARY_ORIGIN="-Wl,-z,origin $SET_EXECUTABLE_ORIGIN"
-       fi
-@@ -766,6 +766,13 @@ AC_DEFUN([FLAGS_SETUP_CFLAGS_CPU_DEP],
-       $1_CFLAGS_CPU="-mcpu=pwr8"
-     fi
- 
-+    if test "x$FLAGS_CPU" = xarm; then
-+      # For whatever reason arm build with clang fails with:
-+      #   ad_arm.cpp:19849:4: error: "ARM must be defined"
-+      # Fix by defining arm here as well.
-+      $1_CFLAGS_CPU_JVM="-DARM"
-+    fi
-+
-   elif test "x$TOOLCHAIN_TYPE" = xmicrosoft; then
-     if test "x$FLAGS_CPU" = xx86; then
-       $1_CFLAGS_CPU_JVM="-arch:IA32"
-diff --git a/make/autoconf/lib-std.m4 b/make/autoconf/lib-std.m4
-index e470cdbe66fe6..12f01d5625e12 100644
---- a/make/autoconf/lib-std.m4
-+++ b/make/autoconf/lib-std.m4
-@@ -47,7 +47,7 @@ AC_DEFUN_ONCE([LIB_SETUP_STD_LIBS],
-   if test "x$OPENJDK_TARGET_OS" = xlinux; then
-     # Test if stdc++ can be linked statically.
-     AC_MSG_CHECKING([if static link of stdc++ is possible])
--    STATIC_STDCXX_FLAGS="-static-libstdc++ -static-libgcc"
-+    STATIC_STDCXX_FLAGS="-static-libstdc++"
-     AC_LANG_PUSH(C++)
-     OLD_LIBS="$LIBS"
-     LIBS="$STATIC_STDCXX_FLAGS"
-diff --git a/make/data/hotspot-symbols/version-script-clang.txt b/make/data/hotspot-symbols/version-script-clang.txt
-index 351d64fdd1d57..08ab416cde3e1 100644
---- a/make/data/hotspot-symbols/version-script-clang.txt
-+++ b/make/data/hotspot-symbols/version-script-clang.txt
-@@ -3,6 +3,5 @@ SUNWprivate_1.1 {
-     *;
- 
-   local:
--    _fini;
--    _init;
-+    *;
- };
-diff --git a/make/hotspot/lib/CompileJvm.gmk b/make/hotspot/lib/CompileJvm.gmk
-index 6b5edc85b2369..d0f737bbfa5d9 100644
---- a/make/hotspot/lib/CompileJvm.gmk
-+++ b/make/hotspot/lib/CompileJvm.gmk
-@@ -162,7 +162,7 @@ endif
- ifeq ($(call isTargetOs, linux), true)
-   HOTSPOT_VERSION_SCRIPT := $(TOPDIR)/make/data/hotspot-symbols/version-script-$(TOOLCHAIN_TYPE).txt
- 
--  JVM_LDFLAGS += -Wl,-version-script=$(HOTSPOT_VERSION_SCRIPT)
-+  JVM_LDFLAGS += -Wl,-version-script=$(HOTSPOT_VERSION_SCRIPT) -Wl,--no-undefined-version -Wl,--no-undefined
- endif
- 
- ################################################################################
-diff --git a/make/hotspot/lib/JvmOverrideFiles.gmk b/make/hotspot/lib/JvmOverrideFiles.gmk
-index 3eedb64a597a3..d773c5f949523 100644
---- a/make/hotspot/lib/JvmOverrideFiles.gmk
-+++ b/make/hotspot/lib/JvmOverrideFiles.gmk
-@@ -63,7 +63,8 @@ ifeq ($(call isTargetOs, linux), true)
-       $(OPT_SPEED_SRC) \
-       #
- 
--  ifeq ($(call isTargetCpu, x86), true)
-+  #ifeq ($(call isTargetCpu, x86), true)
-+  ifeq (false, true)
-     # Performance measurements show that by compiling GC related code, we could
-     # significantly reduce the GC pause time on 32 bit Linux/Unix platforms by
-     # compiling without the PIC flag (-fPIC on linux).
-diff --git a/src/hotspot/os/linux/os_linux.cpp b/src/hotspot/os/linux/os_linux.cpp
-index b747fe4d88f87..542c130873c1f 100644
---- a/src/hotspot/os/linux/os_linux.cpp
-+++ b/src/hotspot/os/linux/os_linux.cpp
-@@ -137,10 +137,10 @@
- 
- #define MAX_PATH    (2 * K)
- 
--#ifdef MUSL_LIBC
-+#if defined(MUSL_LIBC) || (defined(__ANDROID__) && __ANDROID_API__ < 24)
- // dlvsym is not a part of POSIX
- // and musl libc doesn't implement it.
--static void *dlvsym(void *handle,
-+void *dlvsym(void *handle,
-                     const char *symbol,
-                     const char *version) {
-    // load the latest version of symbol
-@@ -1988,6 +1988,7 @@ void * os::Linux::dll_load_in_vmthread(const char *filename, char *ebuf,
- }
- 
- const char* os::Linux::dll_path(void* lib) {
-+#ifdef RTLD_DI_LINKMAP
-   struct link_map *lmap;
-   const char* l_path = nullptr;
-   assert(lib != nullptr, "dll_path parameter must not be null");
-@@ -1997,6 +1998,9 @@ const char* os::Linux::dll_path(void* lib) {
-     l_path = lmap->l_name;
-   }
-   return l_path;
-+#else
-+  return NULL;
-+#endif
- }
- 
- static unsigned count_newlines(const char* s) {
-diff --git a/src/hotspot/os/posix/os_posix.cpp b/src/hotspot/os/posix/os_posix.cpp
-index d417f384a18c8..d26f81a4d5914 100644
---- a/src/hotspot/os/posix/os_posix.cpp
-+++ b/src/hotspot/os/posix/os_posix.cpp
-@@ -107,6 +107,8 @@ static int clock_tics_per_sec = 100;
- // Platform minimum stack allowed
- size_t os::_os_min_stack_allowed = PTHREAD_STACK_MIN;
- 
-+static bool read_so_path_from_maps(const char* so_name, char* buf, int buflen);
-+
- // Check core dump limit and report possible place where core can be found
- void os::check_core_dump_prerequisites(char* buffer, size_t bufferSize, bool check_only) {
-   if (!FLAG_IS_DEFAULT(CreateCoredumpOnCrash) && !CreateCoredumpOnCrash) {
-@@ -1064,6 +1066,30 @@ bool os::same_files(const char* file1, const char* file2) {
- 
- static char saved_jvm_path[MAXPATHLEN] = {0};
- 
-+static bool read_so_path_from_maps(const char* so_name, char* buf, int buflen) {
-+  FILE *fp = fopen("/proc/self/maps", "r");
-+  assert(fp, "Failed to open /proc/self/maps");
-+  if (!fp) {
-+    return false;
-+  }
-+
-+  char maps_buffer[2048];
-+  while (fgets(maps_buffer, 2048, fp) != NULL) {
-+    if (strstr(maps_buffer, so_name) == NULL) {
-+      continue;
-+    }
-+
-+    char *so_path = strchr(maps_buffer, '/');
-+    so_path[strlen(so_path) - 1] = '\0'; // Cut trailing \n
-+    jio_snprintf(buf, buflen, "%s", so_path);
-+    fclose(fp);
-+    return true;
-+  }
-+
-+  fclose(fp);
-+  return false;
-+}
-+
- // Find the full path to the current module, libjvm.so
- void os::jvm_path(char *buf, jint buflen) {
-   // Error checking.
-@@ -1099,6 +1125,19 @@ void os::jvm_path(char *buf, jint buflen) {
-   }
-   fname = dli_fname;
- #endif // AIX
-+#ifdef __ANDROID__
-+  if (dli_fname[0] == '\0') {
-+    return;
-+  }
-+
-+  if (strchr(dli_fname, '/') == NULL) {
-+    bool ok = read_so_path_from_maps(dli_fname, buf, buflen);
-+    assert(ok, "unable to turn relative libjvm.so path into absolute");
-+    return;
-+  }
-+
-+  os::snprintf(buf, buflen, /* "%s/lib/%s/server/%s", java_home_var, cpu_arch, */ "%s", dli_fname);
-+#else // !__ANDROID__
-   char* rp = nullptr;
-   if (fname[0] != '\0') {
-     rp = os::realpath(fname, buf, buflen);
-@@ -1146,6 +1185,7 @@ void os::jvm_path(char *buf, jint buflen) {
-       }
-     }
-   }
-+#endif
- 
-   strncpy(saved_jvm_path, buf, MAXPATHLEN);
-   saved_jvm_path[MAXPATHLEN - 1] = '\0';
-diff --git a/src/hotspot/share/jvmci/jvmciRuntime.cpp b/src/hotspot/share/jvmci/jvmciRuntime.cpp
-index ad848998823f2..bf54f44fa8d78 100644
---- a/src/hotspot/share/jvmci/jvmciRuntime.cpp
-+++ b/src/hotspot/share/jvmci/jvmciRuntime.cpp
-@@ -1248,7 +1248,7 @@ JNIEnv* JVMCIRuntime::init_shared_library_javavm(int* create_JavaVM_err, const c
- 
-     ResourceMark rm;
-     JavaVMInitArgs vm_args;
--    vm_args.version = JNI_VERSION_1_2;
-+    vm_args.version = JNI_VERSION_24;
-     vm_args.ignoreUnrecognized = JNI_TRUE;
-     JavaVMOption options[6];
-     jlong javaVM_id = 0;
-@@ -1270,7 +1270,7 @@ JNIEnv* JVMCIRuntime::init_shared_library_javavm(int* create_JavaVM_err, const c
-     options[5].optionString = (char*) "_createvm_errorstr";
-     options[5].extraInfo = (void*) err_msg;
- 
--    vm_args.version = JNI_VERSION_1_2;
-+    vm_args.version = JNI_VERSION_24;
-     vm_args.options = options;
-     vm_args.nOptions = sizeof(options) / sizeof(JavaVMOption);
- 
-diff --git a/src/java.base/share/classes/jdk/internal/util/StaticProperty.java b/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
-index 4fb3ae7a184ee..b5cc8b8d8804f 100644
---- a/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
-+++ b/src/java.base/share/classes/jdk/internal/util/StaticProperty.java
-@@ -116,7 +116,7 @@ private StaticProperty() {}
-             USER_SCRIPT = "";
-         } else {
-             USER_SCRIPT = getProperty(props, "user.script", "");
--            USER_COUNTRY = getProperty(props, "user.country", "");
-+            USER_COUNTRY = getProperty(props, "user.country", "CN");
-             USER_VARIANT = getProperty(props, "user.variant", "");
-         }
-         USER_SCRIPT_DISPLAY = getProperty(props, "user.script.display", USER_SCRIPT);
-diff --git a/src/java.base/share/native/libjava/check_version.c b/src/java.base/share/native/libjava/check_version.c
-index 17a590fea1456..70fa6982dbe89 100644
---- a/src/java.base/share/native/libjava/check_version.c
-+++ b/src/java.base/share/native/libjava/check_version.c
-@@ -30,5 +30,5 @@
- JNIEXPORT jint JNICALL
- DEF_JNI_OnLoad(JavaVM *vm, void *reserved)
- {
--    return JNI_VERSION_1_2;
-+    return JNI_VERSION_24;
- }
-diff --git a/src/java.base/unix/native/libjava/ProcessImpl_md.c b/src/java.base/unix/native/libjava/ProcessImpl_md.c
-index 1d0c8d21d3757..7cc8885a8c17c 100644
---- a/src/java.base/unix/native/libjava/ProcessImpl_md.c
-+++ b/src/java.base/unix/native/libjava/ProcessImpl_md.c
-@@ -339,13 +339,9 @@ throwIOExceptionImpl(JNIEnv *env, int errnum, const char *externalDetail, const
-     char tmpbuf[1024];
-     jstring s;
- 
--    if (errnum != 0) {
--        int ret = getErrorString(errnum, tmpbuf, sizeof(tmpbuf));
--        if (ret != EINVAL) {
--            errorDetail = tmpbuf;
--        } else {
--            errorDetail = "unknown";
--        }
-+    if (errnum != EINVAL) {
-+        getErrorString(errnum, tmpbuf, sizeof(tmpbuf));
-+        errorDetail = tmpbuf;
-     } else {
-         errorDetail = "none";
-     }
-diff --git a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-index fbf996886ae40..9218aa5605914 100644
---- a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-+++ b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-@@ -70,7 +70,7 @@
- // by defining binary compatible statx structs in this file and
- // not relying on included headers.
- 
--#ifndef __GLIBC__
-+#if !defined(__BIONIC__) && !defined(__GLIBC__)
- // Alpine doesn't know these types, define them
- typedef unsigned int       __uint32_t;
- typedef unsigned short     __uint16_t;
-@@ -382,7 +382,7 @@ Java_sun_nio_fs_UnixNativeDispatcher_init(JNIEnv* env, jclass this)
- #ifdef _DARWIN_FEATURE_64_BIT_INODE
-     capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
- #endif
--#if defined(__linux__)
-+#if defined(__linux__) && !defined(__ANDROID__)
-     my_statx_func = (statx_func*) dlsym(RTLD_DEFAULT, "statx");
-     if (my_statx_func != NULL) {
-         capabilities |= sun_nio_fs_UnixNativeDispatcher_SUPPORTS_BIRTHTIME;
-diff --git a/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c b/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
-index 0d352c36bbebe..064bf7439f021 100644
---- a/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
-+++ b/src/java.desktop/unix/native/common/java2d/x11/X11FontScaler_md.c
-@@ -47,7 +47,7 @@ static int pixmapWidth = 0;
- static int pixmapHeight = 0;
- 
- #define FONT_AWT_LOCK() \
--env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2); \
-+env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_24); \
- AWT_LOCK();
- 
- int CreatePixmapAndGC (int width, int height)
-diff --git a/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c b/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c
-index 356b52dfb3487..d2cd0e043c9f9 100644
---- a/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c
-+++ b/src/java.desktop/unix/native/libawt/awt/awt_LoadLibrary.c
-@@ -57,14 +57,14 @@ typedef jint JNICALL JNI_OnLoad_type(JavaVM *vm, void *reserved);
-    first loaded */
- JNIEXPORT JavaVM *jvm;
- 
--JNIEXPORT jboolean JNICALL AWTIsHeadless() {
-+JNIEXPORT jboolean JNICALL AWTIsHeadless(void) {
-     static JNIEnv *env = NULL;
-     static jboolean isHeadless;
-     jmethodID headlessFn;
-     jclass graphicsEnvClass;
- 
-     if (env == NULL) {
--        env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
-+        env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_24);
-         graphicsEnvClass = (*env)->FindClass(env,
-                                              "java/awt/GraphicsEnvironment");
-         CHECK_EXCEPTION_FATAL(env, "FindClass java/awt/GraphicsEnvironment failed");
-@@ -104,12 +104,12 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
-     char *p, *tk;
-     JNI_OnLoad_type *JNI_OnLoad_ptr;
-     struct utsname name;
--    JNIEnv *env = (JNIEnv *)JNU_GetEnv(vm, JNI_VERSION_1_2);
-+    JNIEnv *env = (JNIEnv *)JNU_GetEnv(vm, JNI_VERSION_24);
-     void *v;
- 
-     if (awtHandle != NULL) {
-         /* Avoid several loading attempts */
--        return JNI_VERSION_1_2;
-+        return JNI_VERSION_24;
-     }
- 
-     jvm = vm;
-@@ -152,7 +152,7 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
-         awtHandle = dlopen(buf, RTLD_LAZY | RTLD_GLOBAL);
-     }
- 
--    return JNI_VERSION_1_2;
-+    return JNI_VERSION_24;
- }
- 
- JNIEXPORT jint JNICALL
-diff --git a/src/hotspot/os_cpu/linux_arm/linux_arm_32.S b/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-index a866858dae520..9629aef8e251b 100644
---- a/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-+++ b/src/hotspot/os_cpu/linux_arm/linux_arm_32.S
-@@ -66,7 +66,7 @@ dw_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     dw_f2b_loop_32
- dw_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     disjoint_words_finish
-         cmp     r2, #16
-         blt	disjoint_words_small
-@@ -114,7 +114,7 @@ cw_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     cw_f2b_loop_32
- cw_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_words_finish
-         cmp     r2, #16
-         blt	conjoint_words_small
-@@ -147,7 +147,7 @@ cw_b2f_loop_32:
-         stmdb to!, {r3-r9,ip}
-         bgt     cw_b2f_loop_32
- cw_b2f_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_words_finish
-         cmp     r2, #16
-         blt	cw_b2f_copy_small
-@@ -199,7 +199,7 @@ cs_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     cs_f2b_loop_32
- cs_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_shorts_finish
-         movs    r6, r2, lsr #3
-         .align 3
-@@ -215,11 +215,11 @@ cs_f2b_4:
-         beq     conjoint_shorts_finish
-         cmp     r2, #4
-         ldrh    r3, [from], #2
--        ldrgeh  r4, [from], #2
--        ldrgth  r5, [from], #2
-+        ldrhgt  r4, [from], #2
-+        ldrhgt  r5, [from], #2
-         strh    r3, [to], #2
--        strgeh  r4, [to], #2
--        strgth  r5, [to], #2
-+        strhge  r4, [to], #2
-+        strhgt  r5, [to], #2
-         b       conjoint_shorts_finish
- 
-         # Destination not aligned
-@@ -277,11 +277,11 @@ cs_f2b_4_u:
-         beq     conjoint_shorts_finish
-         cmp     r2, #4
-         ldrh    r3, [from], #2
--        ldrgeh  r4, [from], #2
--        ldrgth  r5, [from], #2
-+        ldrhgt  r4, [from], #2
-+        ldrhgt  r5, [from], #2
-         strh    r3, [to], #2
--        strgeh  r4, [to], #2
--        strgth  r5, [to], #2
-+        strhge  r4, [to], #2
-+        strhgt  r5, [to], #2
-         b       conjoint_shorts_finish
- 
-         # Src and dest overlap, copy in a descending order
-@@ -304,7 +304,7 @@ cs_b2f_loop_32:
-         stmdb to!, {r3-r9,ip}
-         bgt     cs_b2f_loop_32
- cs_b2f_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_shorts_finish
-         cmp     r2, #24
-         blt     cs_b2f_16
-@@ -330,11 +330,11 @@ cs_b2f_8:
- cs_b2f_all_copy:
-         cmp     r2, #4
-         ldrh    r3, [from, #-2]!
--        ldrgeh  r4, [from, #-2]!
--        ldrgth  r5, [from, #-2]!
-+        ldrhgt  r4, [from, #-2]!
-+        ldrhgt  r5, [from, #-2]!
-         strh    r3, [to, #-2]!
--        strgeh  r4, [to, #-2]!
--        strgth  r5, [to, #-2]!
-+        strhge  r4, [to, #-2]!
-+        strhgt  r5, [to, #-2]!
-         b       conjoint_shorts_finish
- 
-         # Destination not aligned
-@@ -369,7 +369,7 @@ cs_b2f_16_loop_u:
-         bgt     cs_b2f_16_loop_u
-         beq     conjoint_shorts_finish
- cs_b2f_16_loop_u_finished:
--        addlts  r2, #16
-+        addslt  r2, #16
-         ldr     r3, [from]
-         cmp     r2, #10
-         blt     cs_b2f_2_u_loop
-@@ -432,7 +432,7 @@ cl_f2b_loop_32:
-         stmia to!, {r3 - r9, ip}
-         bgt     cl_f2b_loop_32
- cl_f2b_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_longs_finish
- conjoint_longs_small:
-         cmp     r2, #16
-@@ -465,7 +465,7 @@ cl_b2f_loop_32:
-         stmdb 	to!, {r3 - r9, ip}
-         bgt     cl_b2f_loop_32
- cl_b2f_loop_32_finish:
--        addlts  r2, #32
-+        addslt  r2, #32
-         beq     conjoint_longs_finish
-         cmp     r2, #16
-         blt	cl_b2f_copy_8
-diff --git a/src/hotspot/os/linux/os_perf_linux.cpp b/src/hotspot/os/linux/os_perf_linux.cpp
-index 7caf8f98a00fb..7b2dd23a44ca2 100644
---- a/src/hotspot/os/linux/os_perf_linux.cpp
-+++ b/src/hotspot/os/linux/os_perf_linux.cpp
-@@ -35,7 +35,18 @@
- #include <dlfcn.h>
- #include <errno.h>
- #include <fcntl.h>
-+#ifndef __ANDROID__
- #include <ifaddrs.h>
-+#else
-+#include <sys/cdefs.h>
-+#include <netinet/in.h>
-+#include <sys/socket.h>
-+#include <linux/if_packet.h>
-+#include <linux/netlink.h>
-+#include <linux/rtnetlink.h>
-+#include <net/if.h>
-+#include <stdint.h>
-+#endif
- #include <limits.h>
- #include <pthread.h>
- #include <stdarg.h>
-@@ -47,6 +58,298 @@
- #include <sys/types.h>
- #include <unistd.h>
- 
-+#ifdef __ANDROID__
-+/*
-+ * Copyright (C) 2015 The Android Open Source Project
-+ * All rights reserved.
-+ *
-+ * Redistribution and use in source and binary forms, with or without
-+ * modification, are permitted provided that the following conditions
-+ * are met:
-+ *  * Redistributions of source code must retain the above copyright
-+ *    notice, this list of conditions and the following disclaimer.
-+ *  * Redistributions in binary form must reproduce the above copyright
-+ *    notice, this list of conditions and the following disclaimer in
-+ *    the documentation and/or other materials provided with the
-+ *    distribution.
-+ *
-+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
-+ * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-+ * SUCH DAMAGE.
-+ */
-+
-+__BEGIN_DECLS
-+
-+/**
-+ * Returned by getifaddrs() and freed by freeifaddrs().
-+ */
-+struct ifaddrs {
-+  /** Pointer to the next element in the linked list. */
-+  struct ifaddrs* ifa_next;
-+
-+  /** Interface name. */
-+  char* ifa_name;
-+
-+  /** Interface flags (like `SIOCGIFFLAGS`). */
-+  unsigned int ifa_flags;
-+
-+  /** Interface address. */
-+  struct sockaddr* ifa_addr;
-+
-+  /** Interface netmask. */
-+  struct sockaddr* ifa_netmask;
-+
-+  union {
-+    /** Interface broadcast address (if IFF_BROADCAST is set). */
-+    struct sockaddr* ifu_broadaddr;
-+
-+    /** Interface destination address (if IFF_POINTOPOINT is set). */
-+    struct sockaddr* ifu_dstaddr;
-+  } ifa_ifu;
-+
-+  /** Unused. */
-+  void* ifa_data;
-+};
-+
-+/** Synonym for `ifa_ifu.ifu_broadaddr` in `struct ifaddrs`. */
-+#define ifa_broadaddr ifa_ifu.ifu_broadaddr
-+
-+/** Synonym for `ifa_ifu.ifu_dstaddr` in `struct ifaddrs`. */
-+#define ifa_dstaddr ifa_ifu.ifu_dstaddr
-+
-+int getifaddrs(struct ifaddrs** __list_ptr); // __INTRODUCED_IN(24);
-+
-+/**
-+ * [freeifaddrs(3)](http://man7.org/linux/man-pages/man3/freeifaddrs.3.html) frees a linked list
-+ * of `struct ifaddrs` returned by getifaddrs().
-+ *
-+ * Available since API level 24.
-+ */
-+void freeifaddrs(struct ifaddrs* __ptr); // __INTRODUCED_IN(24);
-+
-+__END_DECLS
-+
-+#define nullptr 0
-+
-+// The public ifaddrs struct is full of pointers. Rather than track several
-+// different allocations, we use a maximally-sized structure with the public
-+// part at offset 0, and pointers into its hidden tail.
-+struct ifaddrs_storage {
-+  // Must come first, so that `ifaddrs_storage` is-a `ifaddrs`.
-+  ifaddrs ifa;
-+  // The interface index, so we can match RTM_NEWADDR messages with
-+  // earlier RTM_NEWLINK messages (to copy the interface flags).
-+  int interface_index;
-+  // Storage for the pointers in `ifa`.
-+  sockaddr_storage addr;
-+  sockaddr_storage netmask;
-+  sockaddr_storage ifa_ifu;
-+  char name[IFNAMSIZ + 1];
-+  // Netlink gives us the address family in the header, and the
-+  // sockaddr_in or sockaddr_in6 bytes as the payload. We need to
-+  // stitch the two bits together into the sockaddr that's part of
-+  // our portable interface.
-+  void SetAddress(int family, const void* data, size_t byteCount) {
-+      addr.ss_family = family;
-+      memcpy(SockaddrBytes(family, &addr), data, byteCount);
-+      ifa.ifa_addr = reinterpret_cast<sockaddr*>(&addr);
-+  }
-+  void SetBroadcastAddress(int family, const void* data, size_t byteCount) {
-+      ifa_ifu.ss_family = family;
-+      memcpy(SockaddrBytes(family, &ifa_ifu), data, byteCount);
-+      ifa.ifa_dstaddr = reinterpret_cast<sockaddr*>(&ifa_ifu);
-+  }
-+  // Netlink gives us the prefix length as a bit count. We need to turn
-+  // that into a BSD-compatible netmask represented by a sockaddr*.
-+  void SetNetmask(int family, size_t prefix_length) {
-+      // ...and work out the netmask from the prefix length.
-+      netmask.ss_family = family;
-+      uint8_t* dst = SockaddrBytes(family, &netmask);
-+      memset(dst, 0xff, prefix_length / 8);
-+      if ((prefix_length % 8) != 0) {
-+        dst[prefix_length/8] = (0xff << (8 - (prefix_length % 8)));
-+      }
-+      ifa.ifa_netmask = reinterpret_cast<sockaddr*>(&netmask);
-+  }
-+  void SetPacketAttributes(int ifindex, unsigned short hatype, unsigned char halen) {
-+    sockaddr_ll* sll = reinterpret_cast<sockaddr_ll*>(&addr);
-+    sll->sll_ifindex = ifindex;
-+    sll->sll_hatype = hatype;
-+    sll->sll_halen = halen;
-+  }
-+ private:
-+  // Returns a pointer to the first byte in the address data (which is
-+  // stored in network byte order).
-+  uint8_t* SockaddrBytes(int family, sockaddr_storage* ss) {
-+    if (family == AF_INET) {
-+      sockaddr_in* ss4 = reinterpret_cast<sockaddr_in*>(ss);
-+      return reinterpret_cast<uint8_t*>(&ss4->sin_addr);
-+    } else if (family == AF_INET6) {
-+      sockaddr_in6* ss6 = reinterpret_cast<sockaddr_in6*>(ss);
-+      return reinterpret_cast<uint8_t*>(&ss6->sin6_addr);
-+    } else if (family == AF_PACKET) {
-+      sockaddr_ll* sll = reinterpret_cast<sockaddr_ll*>(ss);
-+      return reinterpret_cast<uint8_t*>(&sll->sll_addr);
-+    }
-+    return nullptr;
-+  }
-+};
-+ifaddrs_storage* new_ifaddrs_storage(ifaddrs** list) {
-+  ifaddrs_storage *storage = nullptr;
-+  memset(storage, 0, sizeof(*storage));
-+  // push_front onto `list`.
-+  storage->ifa.ifa_next = *list;
-+  *list = reinterpret_cast<ifaddrs*>(storage);
-+  return storage;
-+}
-+#if !defined(__clang__)
-+// GCC gets confused by NLMSG_DATA and doesn't realize that the old-style
-+// cast is from a system header and should be ignored.
-+#pragma GCC diagnostic ignored "-Wold-style-cast"
-+#endif
-+static void __handle_netlink_response(ifaddrs** out, nlmsghdr* hdr) {
-+  if (hdr->nlmsg_type == RTM_NEWLINK) {
-+    ifinfomsg* ifi = reinterpret_cast<ifinfomsg*>(NLMSG_DATA(hdr));
-+    // Create a new ifaddr entry, and set the interface index and flags.
-+    ifaddrs_storage* new_addr = new_ifaddrs_storage(out);
-+    new_addr->interface_index = ifi->ifi_index;
-+    new_addr->ifa.ifa_flags = ifi->ifi_flags;
-+    // Go through the various bits of information and find the name.
-+    rtattr* rta = IFLA_RTA(ifi);
-+    size_t rta_len = IFLA_PAYLOAD(hdr);
-+    while (RTA_OK(rta, rta_len)) {
-+      if (rta->rta_type == IFLA_ADDRESS) {
-+          if (RTA_PAYLOAD(rta) < sizeof(new_addr->addr)) {
-+            new_addr->SetAddress(AF_PACKET, RTA_DATA(rta), RTA_PAYLOAD(rta));
-+            new_addr->SetPacketAttributes(ifi->ifi_index, ifi->ifi_type, RTA_PAYLOAD(rta));
-+          }
-+      } else if (rta->rta_type == IFLA_BROADCAST) {
-+          if (RTA_PAYLOAD(rta) < sizeof(new_addr->ifa_ifu)) {
-+            new_addr->SetBroadcastAddress(AF_PACKET, RTA_DATA(rta), RTA_PAYLOAD(rta));
-+            new_addr->SetPacketAttributes(ifi->ifi_index, ifi->ifi_type, RTA_PAYLOAD(rta));
-+          }
-+      } else if (rta->rta_type == IFLA_IFNAME) {
-+          if (RTA_PAYLOAD(rta) < sizeof(new_addr->name)) {
-+            memcpy(new_addr->name, RTA_DATA(rta), RTA_PAYLOAD(rta));
-+            new_addr->ifa.ifa_name = new_addr->name;
-+          }
-+      }
-+      rta = RTA_NEXT(rta, rta_len);
-+    }
-+  } else if (hdr->nlmsg_type == RTM_NEWADDR) {
-+    ifaddrmsg* msg = reinterpret_cast<ifaddrmsg*>(NLMSG_DATA(hdr));
-+    // We should already know about this from an RTM_NEWLINK message.
-+    const ifaddrs_storage* addr = reinterpret_cast<const ifaddrs_storage*>(*out);
-+    while (addr != nullptr && addr->interface_index != static_cast<int>(msg->ifa_index)) {
-+      addr = reinterpret_cast<const ifaddrs_storage*>(addr->ifa.ifa_next);
-+    }
-+    // If this is an unknown interface, ignore whatever we're being told about it.
-+    if (addr == nullptr) return;
-+    // Create a new ifaddr entry and copy what we already know.
-+    ifaddrs_storage* new_addr = new_ifaddrs_storage(out);
-+    // We can just copy the name rather than look for IFA_LABEL.
-+    strcpy(new_addr->name, addr->name);
-+    new_addr->ifa.ifa_name = new_addr->name;
-+    new_addr->ifa.ifa_flags = addr->ifa.ifa_flags;
-+    new_addr->interface_index = addr->interface_index;
-+    // Go through the various bits of information and find the address
-+    // and any broadcast/destination address.
-+    rtattr* rta = IFA_RTA(msg);
-+    size_t rta_len = IFA_PAYLOAD(hdr);
-+    while (RTA_OK(rta, rta_len)) {
-+      if (rta->rta_type == IFA_ADDRESS) {
-+        if (msg->ifa_family == AF_INET || msg->ifa_family == AF_INET6) {
-+          new_addr->SetAddress(msg->ifa_family, RTA_DATA(rta), RTA_PAYLOAD(rta));
-+          new_addr->SetNetmask(msg->ifa_family, msg->ifa_prefixlen);
-+        }
-+      } else if (rta->rta_type == IFA_BROADCAST) {
-+        if (msg->ifa_family == AF_INET || msg->ifa_family == AF_INET6) {
-+          new_addr->SetBroadcastAddress(msg->ifa_family, RTA_DATA(rta), RTA_PAYLOAD(rta));
-+        }
-+      }
-+      rta = RTA_NEXT(rta, rta_len);
-+    }
-+  }
-+}
-+static bool __send_netlink_request(int fd, int type) {
-+  struct NetlinkMessage {
-+    nlmsghdr hdr;
-+    rtgenmsg msg;
-+  } request;
-+  memset(&request, 0, sizeof(request));
-+  request.hdr.nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-+  request.hdr.nlmsg_type = type;
-+  request.hdr.nlmsg_len = sizeof(request);
-+  request.msg.rtgen_family = AF_UNSPEC; // All families.
-+  return (TEMP_FAILURE_RETRY(send(fd, &request, sizeof(request), 0)) == sizeof(request));
-+}
-+static bool __read_netlink_responses(int fd, ifaddrs** out, char* buf, size_t buf_len) {
-+  ssize_t bytes_read;
-+  // Read through all the responses, handing interesting ones to __handle_netlink_response.
-+  while ((bytes_read = TEMP_FAILURE_RETRY(recv(fd, buf, buf_len, 0))) > 0) {
-+    nlmsghdr* hdr = reinterpret_cast<nlmsghdr*>(buf);
-+    for (; NLMSG_OK(hdr, static_cast<size_t>(bytes_read)); hdr = NLMSG_NEXT(hdr, bytes_read)) {
-+      if (hdr->nlmsg_type == NLMSG_DONE) return true;
-+      if (hdr->nlmsg_type == NLMSG_ERROR) return false;
-+      __handle_netlink_response(out, hdr);
-+    }
-+  }
-+  // We only get here if recv fails before we see a NLMSG_DONE.
-+  return false;
-+}
-+int getifaddrs(ifaddrs** out) {
-+  // Make cleanup easy.
-+  *out = nullptr;
-+  // The kernel keeps packets under 8KiB (NLMSG_GOODSIZE),
-+  // but that's a bit too large to go on the stack.
-+  size_t buf_len = 8192;
-+  char* buf = NEW_C_HEAP_ARRAY(char, buf_len, mtInternal);
-+  if (buf == nullptr) return -1;
-+  // Open the netlink socket and ask for all the links and addresses.
-+  int fd = socket(PF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
-+  bool okay = fd != -1 &&
-+      __send_netlink_request(fd, RTM_GETLINK) && __read_netlink_responses(fd, out, buf, buf_len) &&
-+      __send_netlink_request(fd, RTM_GETADDR) && __read_netlink_responses(fd, out, buf, buf_len);
-+  if (!okay) {
-+    freeifaddrs(*out);
-+    // Ensure that callers crash if they forget to check for success.
-+    *out = nullptr;
-+  }
-+  {
-+    int saved_errno = errno;
-+    close(fd);
-+    FREE_C_HEAP_ARRAY(char, buf);
-+    errno = saved_errno;
-+  }
-+  return okay ? 0 : -1;
-+}
-+void freeifaddrs(ifaddrs* list) {
-+  while (list != nullptr) {
-+    ifaddrs* current = list;
-+    list = list->ifa_next;
-+    os::free(current);
-+  }
-+}
-+#endif
-+
-+/**
-+ * [getifaddrs(3)](http://man7.org/linux/man-pages/man3/getifaddrs.3.html) creates a linked list
-+ * of `struct ifaddrs`. The list must be freed by freeifaddrs().
-+ *
-+ * Returns 0 and stores the list in `*__list_ptr` on success,
-+ * and returns -1 and sets `errno` on failure.
-+ *
-+ * Available since API level 24.
-+ */
- /**
-    /proc/[number]/stat
-               Status information about the process.  This is used by ps(1).  It is defined in /usr/src/linux/fs/proc/array.c.
-diff --git a/src/hotspot/os/posix/forbiddenFunctions_posix.hpp b/src/hotspot/os/posix/forbiddenFunctions_posix.hpp
-index 529cf22078ea5..9041f85d76474 100644
---- a/src/hotspot/os/posix/forbiddenFunctions_posix.hpp
-+++ b/src/hotspot/os/posix/forbiddenFunctions_posix.hpp
-@@ -36,29 +36,4 @@
- #include <unistd.h>
- #endif
- 
--// If needed, add os::strndup and use that instead.
--FORBID_C_FUNCTION(char* strndup(const char*, size_t), noexcept, "don't use");
--
--// These are unimplementable for Windows, and they aren't useful for a
--// POSIX implementation of NMT either.
--// https://stackoverflow.com/questions/62962839/stdaligned-alloc-missing-from-visual-studio-2019
--FORBID_C_FUNCTION(int posix_memalign(void**, size_t, size_t), noexcept, "don't use");
--FORBID_C_FUNCTION(void* aligned_alloc(size_t, size_t), noexcept, "don't use");
--
--// realpath with a null second argument mallocs a string for the result.
--// With a non-null second argument, there is a risk of buffer overrun.
--PRAGMA_DIAG_PUSH
--FORBIDDEN_FUNCTION_IGNORE_CLANG_FORTIFY_WARNING
--FORBID_C_FUNCTION(char* realpath(const char*, char*), noexcept, "use os::realpath");
--PRAGMA_DIAG_POP
--
--// Returns a malloc'ed string.
--FORBID_C_FUNCTION(char* get_current_dir_name(), noexcept, "use os::get_current_directory");
--
--// Problematic API that should never be used.
--FORBID_C_FUNCTION(char* getwd(char*), noexcept, "use os::get_current_directory");
--
--// BSD utility that is subtly different from realloc.
--FORBID_C_FUNCTION(void* reallocf(void*, size_t), /* not noexcept */, "use os::realloc");
--
- #endif // OS_POSIX_FORBIDDENFUNCTIONS_POSIX_HPP
-diff --git a/src/hotspot/share/utilities/forbiddenFunctions.hpp b/src/hotspot/share/utilities/forbiddenFunctions.hpp
-index 47becd7b4c74d..f6cbf8db65b2f 100644
---- a/src/hotspot/share/utilities/forbiddenFunctions.hpp
-+++ b/src/hotspot/share/utilities/forbiddenFunctions.hpp
-@@ -44,40 +44,4 @@
- #include "forbiddenFunctions_posix.hpp"
- #endif
- 
--// Forbid the use of various C library functions.  Some of these have os::
--// replacements that should be used instead.  Others are considered obsolete
--// or have security concerns, either with preferred alternatives, or to be
--// avoided entirely.
--
--FORBID_IMPORTED_NORETURN_C_FUNCTION(void exit(int), noexcept, "use os::exit")
--FORBID_IMPORTED_NORETURN_C_FUNCTION(void _Exit(int), noexcept, "use os::exit")
--
--// Windows puts _exit in <stdlib.h>, POSIX in <unistd.h>.
--FORBID_IMPORTED_NORETURN_C_FUNCTION(void _exit(int), /* not noexcept */, "use os::exit")
--
--FORBID_IMPORTED_C_FUNCTION(char* strerror(int), noexcept, "use os::strerror");
--FORBID_IMPORTED_C_FUNCTION(char* strtok(char*, const char*), noexcept, "use strtok_r");
--
--// AIX declarations for sprintf and snprintf are not noexcept, which is
--// inconsistent with most other system header declarations, including being
--// inconsistent with vsprintf and fsnprintf.
--FORBID_C_FUNCTION(int sprintf(char*, const char*, ...), NOT_AIX(noexcept), "use os::snprintf");
--FORBID_C_FUNCTION(int snprintf(char*, size_t, const char*, ...), NOT_AIX(noexcept), "use os::snprintf");
--
--PRAGMA_DIAG_PUSH
--FORBIDDEN_FUNCTION_IGNORE_CLANG_FORTIFY_WARNING
--FORBID_C_FUNCTION(int vsprintf(char*, const char*, va_list), noexcept, "use os::vsnprintf");
--FORBID_C_FUNCTION(int vsnprintf(char*, size_t, const char*, va_list), noexcept, "use os::vsnprintf");
--PRAGMA_DIAG_POP
--
--// All of the following functions return raw C-heap pointers (sometimes as an
--// option, e.g. realpath or getwd) or, in case of free(), take raw C-heap
--// pointers.  We generally want allocation to be done through NMT.
--FORBID_IMPORTED_C_FUNCTION(void* malloc(size_t size), noexcept, "use os::malloc");
--FORBID_IMPORTED_C_FUNCTION(void free(void *ptr), noexcept, "use os::free");
--FORBID_IMPORTED_C_FUNCTION(void* calloc(size_t nmemb, size_t size), noexcept, "use os::malloc and zero out manually");
--FORBID_IMPORTED_C_FUNCTION(void* realloc(void *ptr, size_t size), noexcept, "use os::realloc");
--FORBID_IMPORTED_C_FUNCTION(char* strdup(const char *s), noexcept, "use os::strdup");
--FORBID_IMPORTED_C_FUNCTION(wchar_t* wcsdup(const wchar_t *s), noexcept, "don't use");
--
- #endif // SHARE_UTILITIES_FORBIDDENFUNCTIONS_HPP
