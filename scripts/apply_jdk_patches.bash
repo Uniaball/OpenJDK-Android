@@ -5,7 +5,7 @@ set -e
 echo "Patching JDK..."
 
 PATCHES_BASE_DIR="${CURRENT_DIR}/patches"
-PATCHES_DIR="${PATCHES_BASE_DIR}/${TARGET_JAVA_VERSION}"
+PATCHES_DIR="${PATCHES_BASE_DIR}/28"
 
 
 if [ ! -d "${PATCHES_DIR}" ]; then
@@ -43,4 +43,4 @@ done
 wait
 
 echo ""
-echo "Patched JDK ${TARGET_JAVA_VERSION} successfully."
+echo "Patched JDK 28 successfully."

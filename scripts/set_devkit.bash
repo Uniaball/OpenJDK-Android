@@ -54,14 +54,14 @@ case "${TARGET_OS}" in
         export CXX=./wrapper/ios/ios-arm64-clang++
         export CXXCPP="$CXX -E"
         export LD=$(xcrun -find -sdk iphoneos ld)
-
+        
         Set_LDFLAGS -L${DEPS_LIB_DIR}
         ;;
-
+    
     "android")
         export AR=${NDK_TOOLCHAIN}/bin/llvm-ar
         export AS=${NDK_TOOLCHAIN}/bin/llvm-as
-
+        
         if [[ -n "${FAKE_GCC}" ]] && [[ "${FAKE_GCC}" == "1" ]]; then
             export CC=./wrapper/gcc/android-wrapped-clang
             export CXX=./wrapper/gcc/android-wrapped-clang++
@@ -69,14 +69,14 @@ case "${TARGET_OS}" in
             export CC=${thecc}
             export CXX=${thecxx}
         fi
-
+        
         if [[ -n "${FAKE_GCC}" && "${FAKE_GCC}" == "1" ]] || [[ -n "${USE_GCC}" && "${USE_GCC}" == "1" ]]; then
             # USE_GCC is unfinished.
             export LD=${NDK_TOOLCHAIN}/bin/ld
         else
             export LD=${NDK_TOOLCHAIN}/bin/ld.lld
         fi
-
+        
         export OBJCOPY=${NDK_TOOLCHAIN}/bin/llvm-objcopy
         export RANLIB=${NDK_TOOLCHAIN}/bin/llvm-ranlib
         export STRIP=${NDK_TOOLCHAIN}/bin/llvm-strip
@@ -87,11 +87,12 @@ case "${TARGET_OS}" in
 
         Set_CFLAGS -I${FREETYPE_DIR}/include/freetype2 -I${CUPS_DIR} -I${DEPS_INCLUDE_DIR} -Wno-unknown-warning-option
         Set_CPPFLAGS -I${FREETYPE_DIR}/include/freetype2 -I${CUPS_DIR} -I${DEPS_INCLUDE_DIR} -Wno-unknown-warning-option
-        Set_LDFLAGS -Wl,--as-needed -L${FREETYPE_DIR}/lib -L${DEPS_LIB_DIR} -L${NDK_TOOLCHAIN}/sysroot/usr/lib/${TARGET}/${ANDROID_API}
+        Set_LDFLAGS -l:libomp.a -Wl,--as-needed -L${FREETYPE_DIR}/lib -L${DEPS_LIB_DIR} -L${NDK_TOOLCHAIN}/sysroot/usr/lib/${TARGET}/${ANDROID_API}
         ;;
-
+    
     *)
         echo "Unknown TARGET_OS: ${TARGET_OS}" >&2
         exit 1
         ;;
 esac
+

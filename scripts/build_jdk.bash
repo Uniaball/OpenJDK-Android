@@ -21,29 +21,33 @@ echo ""
 PrintConfigurationInfo
 echo ""
 
+export VERSION_PRE="beta"
+DEBUG_SYMBOLS_LEVEL="1"
+
+
 bash ./configure \
-      --with-version-pre="-ea" \
+      --with-version-pre="${VERSION_PRE}" \
       --with-vendor-name="OpenJDK" \
       --with-version-opt="${GITHUB_ACTOR}-${GITHUB_SHA}" \
-	  --with-vendor-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
-	  --with-vendor-vm-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
-	  --with-vendor-version-string="OpenJDK-built-with-aaaapai-OpenJDK-Builder" \
-	  --with-vendor-url="https://github.com/openjdk/" \
+          --with-vendor-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
+          --with-vendor-vm-bug-url="https://github.com/aaaapai/OpenJDK-Builder/issues/" \
+          --with-vendor-version-string="OpenJDK-built-with-aaaapai-OpenJDK-Builder" \
+          --with-vendor-url="https://github.com/openjdk/" \
       --with-conf-name="${TARGET}" \
-	  --build="x86_64-pc-linux-gnu" \
-	  --host="${TARGET}" \
-	  --target="${TARGET}" \
+          --build="x86_64-pc-linux-gnu" \
+          --host="${TARGET}" \
+          --target="${TARGET}" \
       --with-boot-jdk-jvmargs="-Xms3G -Xmx3G -XX:+UseThreadPriorities -XX:MetaspaceSize=256M -XX:+UseG1GC -XX:+DisableExplicitGC -XX:+TieredCompilation" \
       --with-jvm-variants="server" \
-	  --with-jvm-features="" \
+          --with-jvm-features="" \
       --with-external-symbols-in-bundles=none \
-      --with-native-debug-symbols-level=1 \
       --disable-precompiled-headers \
       --enable-option-checking=fatal \
       --enable-linktime-gc \
       --disable-warnings-as-errors \
-	  --enable-headless-only=yes \
+          --enable-headless-only=yes \
       --with-debug-level=${JDK_DEBUG_LEVEL} \
+          ${DEBUG_SYMBOLS_LEVEL:+--with-native-debug-symbols-level=${DEBUG_SYMBOLS_LEVEL}} \
       --with-fontconfig-include="${DEPS_INCLUDE_DIR}" \
       --with-devkit="${NDK_TOOLCHAIN}" \
       --with-debug-level=${JDK_DEBUG_LEVEL} \
@@ -60,18 +64,18 @@ bash ./configure \
       STRIP="${STRIP}" \
       NM="${NM}" \
       AR="${AR}" \
-	  RANLIB="${RANLIB}" \
-	  BUILD_OBJDUMP="${OBJDUMP}" \
-	  BUILD_OBJCOPY="${OBJCOPY}" \
+          RANLIB="${RANLIB}" \
+          BUILD_OBJDUMP="${OBJDUMP}" \
+          BUILD_OBJCOPY="${OBJCOPY}" \
       BUILD_NM="${NM}" \
       BUILD_AR="${AR}" \
-	  BUILD_CC="${CURRENT_DIR}/wrapper/clang/buildcc-wrapped-clang" \
-	  BUILD_CXX="${CURRENT_DIR}/wrapper/clang/buildcxx-wrapped-clang++" \
+          BUILD_CC="${CURRENT_DIR}/wrapper/clang/buildcc-wrapped-clang" \
+          BUILD_CXX="${CURRENT_DIR}/wrapper/clang/buildcxx-wrapped-clang++" \
       CXXFILT="llvm-cxxfilt" \
-	  --disable-full-docs \
-	  --enable-javac-server \
-	  --with-memory-size=3072 \
-	  --with-jobs=6 || \
+          --disable-full-docs \
+          --enable-javac-server \
+          --with-memory-size=3072 \
+          --with-jobs=6 || \
 error_code=$?
 
 if [[ "$error_code" -ne 0 ]]; then
